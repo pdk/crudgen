@@ -1,2 +1,3 @@
-# gocrud
-a CRUD generator for go
+# crudgen
+
+Generate CRUD operations for structs.
