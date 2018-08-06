@@ -1,0 +1,52 @@
+// Code generated with github.com/pdk/crudgen DO NOT EDIT.
+
+package {{ .PackageName }}
+
+import (
+    "database/sql"
+)
+
+// Insert will insert one {{ .Struct.Name }} instance as a row in table {{ .TableName }}.
+func (r *{{.Struct.Name}}) Insert(db *sql.DB) error {
+
+    insertStatement := `{{ .Style.Rebind (.Struct.InsertStatement .TableName) }}`
+
+    {{ if .Struct.HasAutoIncrColumn }}
+    var newID int64
+    err := db.QueryRow(insertStatement, {{ .Struct.InsertBindVars }}).Scan(&newID)
+    r.{{ .Struct.AutoIncrFieldName }} = newID;
+    {{ else }}
+    result, err := db.Exec(insertStatment, {{ .Struct.InsertBindVars }})
+    {{ end }}
+
+	return err
+}
+
+// Update will update a row in table {{ .TableName }}.
+func (r *{{ .Struct.Name }}) Update(db *sql.DB) (rowCount int64, err error) {
+
+    updateStatement := `{{ .Style.Rebind (.Struct.UpdateStatement .TableName) }}`
+
+    result, err := db.Exec(updateStatement, {{ .Struct.UpdateBindVars }})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
+}
+
+// Delete will delete a row in table {{ .TableName }}.
+func (r *{{ .Struct.Name }}) Delete(db *sql.DB) (rowCount int64, err error) {
+
+    deleteStatement := `{{ .Style.Rebind (.Struct.DeleteStatement .TableName) }}`
+
+    result, err := db.Exec(deleteStatement, {{ .Struct.DeleteBindVars }})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return result.RowsAffected()
+}
+
