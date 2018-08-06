@@ -43,8 +43,3 @@ create database crud_test
 create user crud_test with password 'MudCrud';
 grant all privileges on database crud_test to crud_test;
 ```
-
-## TODO
-
-1. Parse out the package name from the source rather than requiring a parameter.
-2. Support generating into another package.
