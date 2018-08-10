@@ -14,11 +14,12 @@ type TemplateData struct {
 	PackageName string
 	TableName   string
 	Style       crudlib.BindStyle
+	Select      string
 	Struct
 }
 
 // PrintTemplate will write out the new .go source
-func PrintTemplate(w io.Writer, packageName string, tableName string, s Struct, style crudlib.BindStyle) {
+func PrintTemplate(w io.Writer, packageName string, tableName string, s Struct, style crudlib.BindStyle, selectName string) {
 
 	templatePath := os.Getenv("GOPATH") + "/src/github.com/pdk/crudgen/templates/crud.go-template"
 
@@ -32,6 +33,7 @@ func PrintTemplate(w io.Writer, packageName string, tableName string, s Struct, 
 		TableName:   tableName,
 		Style:       style,
 		Struct:      s,
+		Select:      selectName,
 	})
 	if err != nil {
 		log.Fatalf("%s\n", err)

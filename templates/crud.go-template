@@ -60,12 +60,12 @@ func (r *{{ .Struct.Name }}) Delete(db *sql.DB) (rowCount int64, err error) {
 	return result.RowsAffected()
 }
 
-// Select will select records from table {{ .TableName }} and return a slice of
+// {{ .Select }} will select records from table {{ .TableName }} and return a slice of
 // {{ .Struct.Name }}. The additionalClauses argument should be SQL to be
 // appended to the "select ... from {{ .TableName }}" statement, using "?" for bind
 // variables.  E.g. "where foo = ?". bindValues must be provided in the correct
 // order to match bind placeholders in the additionalClauses.
-func Select(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]{{ .Struct.Name }}, error) {
+func {{ .Select }}(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]{{ .Struct.Name }}, error) {
 
     selectStatement := `{{ .Struct.SelectStatement .TableName }}`
 
@@ -99,7 +99,7 @@ func Select(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]
     return values, rows.Close()
 }
 
-// SelectAll does a Select with no additional conditions/clauses.
-func SelectAll(db *sql.DB) ([]{{ .Struct.Name }}, error) {
+// {{ .Select }}All does a Select with no additional conditions/clauses.
+func {{ .Select }}All(db *sql.DB) ([]{{ .Struct.Name }}, error) {
     return Select(db, "")
 }

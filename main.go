@@ -15,6 +15,7 @@ func init() {
 	flag.StringVar(&structName, "struct", "", "name of struct to generate CRUD for")
 	flag.StringVar(&tableName, "table", "", "name of the database table")
 	flag.Var(&bindStyle, "bindstyle", "bind style, one of 'question', 'dollar' or 'named'")
+	flag.StringVar(&selectName, "select", "Select", "name of the function for executing a query")
 
 	flag.Parse()
 }
@@ -26,6 +27,7 @@ var (
 	tableName      string
 	bindStyle      crudlib.BindStyle
 	outFileName    string
+	selectName     string
 )
 
 func main() {
@@ -41,7 +43,7 @@ func main() {
 
 	outFile := resolveOutFile(outFileName)
 
-	PrintTemplate(outFile, packageName, tableName, *s, bindStyle)
+	PrintTemplate(outFile, packageName, tableName, *s, bindStyle, selectName)
 }
 
 // selectStruct figures out which of the structs found in the .go file to process.
