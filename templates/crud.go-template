@@ -103,3 +103,27 @@ func {{ .Select }}(db *sql.DB, additionalClauses string, bindValues ...interface
 func {{ .Select }}All(db *sql.DB) ([]{{ .Struct.Name }}, error) {
     return Select(db, "")
 }
+
+
+// {{ .Select }}Row will select one record from table {{ .TableName }} and return a
+// {{ .Struct.Name }}. The additionalClauses argument should be SQL to be
+// appended to the "select ... from {{ .TableName }}" statement, using "?" for bind
+// variables.  E.g. "where foo = ?". bindValues must be provided in the correct
+// order to match bind placeholders in the additionalClauses.
+// Returns sql.ErrNoRows if no rows found.
+func {{ .Select }}Row(db *sql.DB, additionalClauses string, bindValues ...interface{}) ({{ .Struct.Name }}, error) {
+
+    selectStatement := `{{ .Struct.SelectStatement .TableName }}`
+
+    if len(additionalClauses) > 0 {
+        selectStatement += " " + additionalClauses
+        selectStatement = crudlib.{{ .Style.ConstName }}.Rebind(selectStatement)
+    }
+
+    i := {{ .Struct.Name }}{}
+
+    err := db.QueryRow(selectStatement, bindValues...).Scan(
+        {{ .Struct.ScanVars "i" }})
+
+    return i, err
+}

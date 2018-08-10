@@ -113,14 +113,14 @@ func TestCrud(t *testing.T) {
 		t.Errorf("expected to update 1 row, but got %d", rowCount)
 	}
 
-	data, err = Select(globalDB, "where id = ?", x.ID)
+	data1, err := SelectRow(globalDB, "where id = ?", x.ID)
 
-	if len(data) != 1 {
-		t.Errorf("expected to find 1 row, but got %d", len(data))
+	if err != nil {
+		t.Errorf("did not expect error, but got %s", err)
 	}
 
-	if data[0].URL != x.URL {
-		t.Errorf("expected URL to be %s, but got %s", x.URL, data[0].URL)
+	if data1.URL != x.URL {
+		t.Errorf("expected URL to be %s, but got %s", x.URL, data1.URL)
 	}
 
 	if x.UpdatedAt.Before(timeTwo) {

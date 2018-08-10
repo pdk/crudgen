@@ -96,3 +96,26 @@ func Select(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]
 func SelectAll(db *sql.DB) ([]Story, error) {
 	return Select(db, "")
 }
+
+// SelectRow will select one record from table stories and return a
+// Story. The additionalClauses argument should be SQL to be
+// appended to the "select ... from stories" statement, using "?" for bind
+// variables.  E.g. "where foo = ?". bindValues must be provided in the correct
+// order to match bind placeholders in the additionalClauses.
+// Returns sql.ErrNoRows if no rows found.
+func SelectRow(db *sql.DB, additionalClauses string, bindValues ...interface{}) (Story, error) {
+
+	selectStatement := `select stories.id, stories.url, stories.mp3_url, stories.mp3_duration, stories.image_urls, stories.name, stories.description, stories.place, stories.created_at, stories.updated_at from stories`
+
+	if len(additionalClauses) > 0 {
+		selectStatement += " " + additionalClauses
+		selectStatement = crudlib.DollarNum.Rebind(selectStatement)
+	}
+
+	i := Story{}
+
+	err := db.QueryRow(selectStatement, bindValues...).Scan(
+		&i.ID, &i.URL, &i.MP3URL, &i.MP3Duration, &i.imageURLs, &i.Name, &i.Description, &i.place, &i.CreatedAt, &i.UpdatedAt)
+
+	return i, err
+}
