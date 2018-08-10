@@ -5,12 +5,18 @@ package {{ .PackageName }}
 import (
     "database/sql"
     "github.com/pdk/crudgen/crudlib"
+    "time"
 )
 
 // Insert will insert one {{ .Struct.Name }} instance as a row in table {{ .TableName }}.
 func (r *{{.Struct.Name}}) Insert(db *sql.DB) error {
 
     insertStatement := `{{ .Style.Rebind (.Struct.InsertStatement .TableName) }}`
+
+    {{ range .Struct.CreateTimestampFields }}
+    r.{{ .Name }} = time.Now(){{ end }}{{ range .Struct.UpdateTimestampFields }}
+    r.{{ .Name }} = time.Now()
+    {{ end }}
 
     {{ if .Struct.HasAutoIncrColumn }}
     var newID int64
@@ -28,6 +34,9 @@ func (r *{{ .Struct.Name }}) Update(db *sql.DB) (rowCount int64, err error) {
 
     updateStatement := `{{ .Style.Rebind (.Struct.UpdateStatement .TableName) }}`
 
+    {{ range .Struct.UpdateTimestampFields }}
+    r.{{ .Name }} = time.Now()
+    {{ end }}
     result, err := db.Exec(updateStatement, {{ .Struct.UpdateBindVars }})
 
 	if err != nil {
@@ -88,4 +97,9 @@ func Select(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]
     }
 
     return values, rows.Close()
+}
+
+// SelectAll does a Select with no additional conditions/clauses.
+func SelectAll(db *sql.DB) ([]{{ .Struct.Name }}, error) {
+    return Select(db, "")
 }

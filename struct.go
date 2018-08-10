@@ -214,8 +214,31 @@ func (s Struct) SelectStatement(tableName string) string {
 	return crudlib.SelectStatement(tableName, s.selectColumnNames(), "")
 }
 
+// ScanVars produces an expression suitable for rows.Scan().
 func (s Struct) ScanVars(structVarName string) string {
 	prefix := "&" + structVarName + "."
 	return prefix + strings.Join(
 		s.selectFieldNames(), ", "+prefix)
+}
+
+// CreateTimestampFields returns range of fields with auto created timestamp.
+func (s Struct) CreateTimestampFields() []Field {
+	v := []Field{}
+	for _, f := range s.Fields {
+		if f.CrudTag == "create_timestamp" {
+			v = append(v, f)
+		}
+	}
+	return v
+}
+
+// UpdateTimestampFields returns range of fields with auto updated timestamp.
+func (s Struct) UpdateTimestampFields() []Field {
+	v := []Field{}
+	for _, f := range s.Fields {
+		if f.CrudTag == "update_timestamp" {
+			v = append(v, f)
+		}
+	}
+	return v
 }

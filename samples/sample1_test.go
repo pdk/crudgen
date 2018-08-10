@@ -61,9 +61,9 @@ func TestCrud(t *testing.T) {
 		Name:        "a name",
 		Description: "the description",
 		place:       "over there",
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
 	}
+
+	baseTime := time.Now()
 
 	err := x.Insert(globalDB)
 
@@ -71,7 +71,15 @@ func TestCrud(t *testing.T) {
 		t.Errorf("did not expect error, but got %s", err)
 	}
 
-	data, err := Select(globalDB, "")
+	if x.CreatedAt.IsZero() {
+		t.Errorf("expected CreatedAt to have a value")
+	}
+
+	if x.CreatedAt.Before(baseTime) {
+		t.Errorf("expected CreatedAt to have a time later than %s, but got %s", baseTime.String(), x.CreatedAt.String())
+	}
+
+	data, err := SelectAll(globalDB)
 
 	if err != nil {
 		t.Errorf("did not expect error, but got %s", err)
@@ -93,6 +101,8 @@ func TestCrud(t *testing.T) {
 
 	x.URL = "http://google.com/"
 
+	timeTwo := time.Now()
+
 	rowCount, err := x.Update(globalDB)
 
 	if err != nil {
@@ -111,6 +121,10 @@ func TestCrud(t *testing.T) {
 
 	if data[0].URL != x.URL {
 		t.Errorf("expected URL to be %s, but got %s", x.URL, data[0].URL)
+	}
+
+	if x.UpdatedAt.Before(timeTwo) {
+		t.Errorf("expected updated_at to be updated, but %s is before %s", x.UpdatedAt.String(), timeTwo.String())
 	}
 
 	rowCount, err = x.Delete(globalDB)
