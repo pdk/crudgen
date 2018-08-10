@@ -122,6 +122,24 @@ func (s Struct) keyFieldNames() []string {
 	return v
 }
 
+func (s Struct) selectColumnNames() []string {
+	v := []string{}
+	for _, f := range s.Fields {
+		v = append(v, f.ColumnName())
+	}
+
+	return v
+}
+
+func (s Struct) selectFieldNames() []string {
+	v := []string{}
+	for _, f := range s.Fields {
+		v = append(v, f.Name)
+	}
+
+	return v
+}
+
 // AutoIncrColumnName returns the name of the column marked with crud tag
 // AutoIncr.
 func (s Struct) AutoIncrColumnName() string {
@@ -189,4 +207,15 @@ func (s Struct) DeleteStatement(tableName string) string {
 // DeleteBindVars returns the field names required for a delete.
 func (s Struct) DeleteBindVars() string {
 	return "r." + strings.Join(s.keyFieldNames(), ", r.")
+}
+
+// SelectStatement returns the standard select statement for the struct.
+func (s Struct) SelectStatement(tableName string) string {
+	return crudlib.SelectStatement(tableName, s.selectColumnNames(), "")
+}
+
+func (s Struct) ScanVars(structVarName string) string {
+	prefix := "&" + structVarName + "."
+	return prefix + strings.Join(
+		s.selectFieldNames(), ", "+prefix)
 }

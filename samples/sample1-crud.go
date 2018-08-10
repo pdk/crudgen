@@ -4,6 +4,8 @@ package samples
 
 import (
 	"database/sql"
+
+	"github.com/pdk/crudgen/crudlib"
 )
 
 // Insert will insert one Story instance as a row in table stories.
@@ -44,4 +46,43 @@ func (r *Story) Delete(db *sql.DB) (rowCount int64, err error) {
 	}
 
 	return result.RowsAffected()
+}
+
+// Select will select records from table stories and return a slice of
+// Story. The additionalClauses argument should be SQL to be
+// appended to the "select ... from stories" statement, using "?" for bind
+// variables.  E.g. "where foo = ?". bindValues must be provided in the correct
+// order to match bind placeholders in the additionalClauses.
+func Select(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]Story, error) {
+
+	selectStatement := `select stories.id, stories.url, stories.mp3_url, stories.mp3_duration, stories.image_urls, stories.name, stories.description, stories.place, stories.created_at, stories.updated_at from stories`
+
+	if len(additionalClauses) > 0 {
+		selectStatement += " " + additionalClauses
+		selectStatement = crudlib.DollarNum.Rebind(selectStatement)
+	}
+
+	values := []Story{}
+
+	rows, err := db.Query(selectStatement, bindValues...)
+	if err != nil {
+		return values, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		i := Story{}
+		err := rows.Scan(&i.ID, &i.URL, &i.MP3URL, &i.MP3Duration, &i.imageURLs, &i.Name, &i.Description, &i.place, &i.CreatedAt, &i.UpdatedAt)
+		if err != nil {
+			return values, err
+		}
+		values = append(values, i)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return values, err
+	}
+
+	return values, rows.Close()
 }

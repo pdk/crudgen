@@ -25,9 +25,20 @@ func (bs *BindStyle) String() string {
 		return "dollar"
 	case ColonName:
 		return "name"
+	default:
+		return "questionmark"
 	}
+}
 
-	return "questionmark"
+func (bs BindStyle) ConstName() string {
+	switch bs {
+	case DollarNum:
+		return "DollarNum"
+	case ColonName:
+		return "ColonName"
+	default:
+		return "QuestionMark"
+	}
 }
 
 // Set from string, to satisfy flag.Var()
@@ -123,10 +134,17 @@ func DeleteStatement(tableName string, keyColumns []string) string {
 		tableName, whereExpressions)
 }
 
-// SelectStatement returns "select tablename.col1, tablename.col2, ... from tablename"
-func SelectStatement(tableName string, columnNames []string) string {
+// SelectStatement constructs a select statement for the given table and
+// columns, with optional additional clauses (where, order by, etc.)
+func SelectStatement(tableName string, columnNames []string, additionalClauses string) string {
 
 	columnsString := tableName + "." + strings.Join(columnNames, ", "+tableName+".")
 
-	return fmt.Sprintf("select %s from %s", columnsString, tableName)
+	selectStatement := fmt.Sprintf("select %s from %s", columnsString, tableName)
+
+	if len(additionalClauses) == 0 {
+		return selectStatement
+	}
+
+	return selectStatement + " " + additionalClauses
 }

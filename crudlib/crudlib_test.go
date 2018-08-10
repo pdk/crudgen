@@ -180,9 +180,10 @@ func TestDeleteStatement(t *testing.T) {
 
 func TestSelectStatement(t *testing.T) {
 	cases := []struct {
-		tableName string
-		columns   []string
-		expected  string
+		tableName         string
+		columns           []string
+		expected          string
+		additionalClauses string
 	}{
 		{
 			tableName: "foo",
@@ -194,11 +195,23 @@ func TestSelectStatement(t *testing.T) {
 			columns:   []string{"alpha"},
 			expected:  "select foo.alpha from foo",
 		},
+		{
+			tableName:         "foo",
+			columns:           []string{"alpha", "beta", "gamma"},
+			additionalClauses: "where foo.alpha = ?",
+			expected:          "select foo.alpha, foo.beta, foo.gamma from foo where foo.alpha = ?",
+		},
+		{
+			tableName:         "foo",
+			columns:           []string{"alpha"},
+			additionalClauses: "order by alpha",
+			expected:          "select foo.alpha from foo order by alpha",
+		},
 	}
 
 	for _, c := range cases {
 
-		result := crudlib.SelectStatement(c.tableName, c.columns)
+		result := crudlib.SelectStatement(c.tableName, c.columns, c.additionalClauses)
 		if result != c.expected {
 			t.Errorf("expected %s, but got %s", c.expected, result)
 		}

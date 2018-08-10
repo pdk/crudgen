@@ -4,6 +4,7 @@ package {{ .PackageName }}
 
 import (
     "database/sql"
+    "github.com/pdk/crudgen/crudlib"
 )
 
 // Insert will insert one {{ .Struct.Name }} instance as a row in table {{ .TableName }}.
@@ -50,3 +51,41 @@ func (r *{{ .Struct.Name }}) Delete(db *sql.DB) (rowCount int64, err error) {
 	return result.RowsAffected()
 }
 
+// Select will select records from table {{ .TableName }} and return a slice of
+// {{ .Struct.Name }}. The additionalClauses argument should be SQL to be
+// appended to the "select ... from {{ .TableName }}" statement, using "?" for bind
+// variables.  E.g. "where foo = ?". bindValues must be provided in the correct
+// order to match bind placeholders in the additionalClauses.
+func Select(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]{{ .Struct.Name }}, error) {
+
+    selectStatement := `{{ .Struct.SelectStatement .TableName }}`
+
+    if len(additionalClauses) > 0 {
+        selectStatement += " " + additionalClauses
+        selectStatement = crudlib.{{ .Style.ConstName }}.Rebind(selectStatement)
+    }
+
+    values := []{{ .Struct.Name }}{}
+
+    rows, err := db.Query(selectStatement, bindValues...)
+    if err != nil {
+        return values, err
+    }
+    defer rows.Close()
+
+    for rows.Next() {
+        i := {{ .Struct.Name }}{}
+        err := rows.Scan({{ .Struct.ScanVars "i" }})
+        if err != nil {
+            return values, err
+        }
+        values = append(values, i)
+    }
+
+    err = rows.Err()
+    if err != nil {
+        return values, err
+    }
+
+    return values, rows.Close()
+}
