@@ -10,7 +10,6 @@ import (
 
 func init() {
 	flag.StringVar(&packageName, "package", "", "name of package for the created .go file")
-	flag.StringVar(&sourceFileName, "source", "", "name of .go file containing struct")
 	flag.StringVar(&outFileName, "out", "", "name of file to create/write")
 	flag.StringVar(&structName, "struct", "", "name of struct to generate CRUD for")
 	flag.StringVar(&tableName, "table", "", "name of the database table")
@@ -21,23 +20,25 @@ func init() {
 }
 
 var (
-	packageName    string
-	sourceFileName string
-	structName     string
-	tableName      string
-	bindStyle      crudlib.BindStyle
-	outFileName    string
-	selectName     string
+	packageName string
+	structName  string
+	tableName   string
+	bindStyle   crudlib.BindStyle
+	outFileName string
+	selectName  string
 )
 
 func main() {
 
-	if sourceFileName == "" || tableName == "" || packageName == "" {
-		log.Fatalf("-source, -table & -package are required arguments.\n")
+	if tableName == "" || packageName == "" {
+		log.Fatalf("-table & -package are required arguments.\n")
 		os.Exit(1)
 	}
 
-	structs := FindStructs(sourceFileName)
+	structs := make(map[string]*Struct)
+	for _, fn := range flag.Args() {
+		merge(structs, FindStructs(fn))
+	}
 
 	s := selectStruct(structName, structs)
 
@@ -50,20 +51,20 @@ func main() {
 func selectStruct(structName string, structs map[string]*Struct) *Struct {
 
 	if len(structs) == 0 {
-		log.Fatalf("no structs found in %s.\n", sourceFileName)
+		log.Fatalf("no structs found.\n")
 	}
 
 	if structName != "" {
 		s, ok := structs[structName]
 		if !ok {
-			log.Fatalf("struct %s not found in source file %s.\n", structName, sourceFileName)
+			log.Fatalf("struct %s not found.\n", structName)
 		}
 
 		return s
 	}
 
 	if len(structs) != 1 {
-		log.Fatalf("multiple structs found in %s. use -struct to specify which to process.\n", sourceFileName)
+		log.Fatalf("multiple structs found. use -struct to specify which to process.\n")
 	}
 
 	// get the struct name of the one item in the map
@@ -87,4 +88,10 @@ func resolveOutFile(outFileName string) *os.File {
 	}
 
 	return outFile
+}
+
+func merge(dst, src map[string]*Struct) {
+	for k, v := range src {
+		dst[k] = v
+	}
 }
