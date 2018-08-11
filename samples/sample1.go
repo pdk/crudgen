@@ -5,6 +5,7 @@ package samples
 
 import (
 	"database/sql"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -22,4 +23,20 @@ type Story struct {
 	place       string         `db:"place"`
 	CreatedAt   time.Time      `db:"created_at" crud:"create_timestamp"`
 	UpdatedAt   time.Time      `db:"updated_at" crud:"update_timestamp"`
+}
+
+func (s *Story) PreInsert() error {
+	if strings.HasPrefix(s.URL, "http://") {
+		s.URL = strings.Replace(s.URL, "http://", "https://", 1)
+	}
+
+	return nil
+}
+
+func (s *Story) PreUpdate() error {
+	if s.Name == "" {
+		s.Name = "(no name available)"
+	}
+
+	return nil
 }

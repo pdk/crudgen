@@ -11,19 +11,24 @@ import (
 // Insert will insert one {{ .Struct.Name }} instance as a row in table {{ .TableName }}.
 func (r *{{.Struct.Name}}) Insert(db *sql.DB) error {
 
-    insertStatement := `{{ .Style.Rebind (.Struct.InsertStatement .TableName) }}`
-
     {{ range .Struct.CreateTimestampFields }}
     r.{{ .Name }} = time.Now(){{ end }}{{ range .Struct.UpdateTimestampFields }}
     r.{{ .Name }} = time.Now()
     {{ end }}
 
+    err := crudlib.PreInsert(r)
+    if err != nil {
+        return err
+    }
+
+    insertStatement := `{{ .Style.Rebind (.Struct.InsertStatement .TableName) }}`
+
     {{ if .Struct.HasAutoIncrColumn }}
     var newID int64
-    err := db.QueryRow(insertStatement, {{ .Struct.InsertBindVars }}).Scan(&newID)
+    err = db.QueryRow(insertStatement, {{ .Struct.InsertBindVars }}).Scan(&newID)
     r.{{ .Struct.AutoIncrFieldName }} = newID;
     {{ else }}
-    result, err := db.Exec(insertStatment, {{ .Struct.InsertBindVars }})
+    _, err = db.Exec(insertStatment, {{ .Struct.InsertBindVars }})
     {{ end }}
 
 	return err
@@ -32,11 +37,17 @@ func (r *{{.Struct.Name}}) Insert(db *sql.DB) error {
 // Update will update a row in table {{ .TableName }}.
 func (r *{{ .Struct.Name }}) Update(db *sql.DB) (rowCount int64, err error) {
 
-    updateStatement := `{{ .Style.Rebind (.Struct.UpdateStatement .TableName) }}`
-
     {{ range .Struct.UpdateTimestampFields }}
     r.{{ .Name }} = time.Now()
     {{ end }}
+
+    err = crudlib.PreUpdate(r)
+    if err != nil {
+        return 0, err
+    }
+
+    updateStatement := `{{ .Style.Rebind (.Struct.UpdateStatement .TableName) }}`
+
     result, err := db.Exec(updateStatement, {{ .Struct.UpdateBindVars }})
 
 	if err != nil {
@@ -52,6 +63,8 @@ func (r *{{ .Struct.Name }}) Delete(db *sql.DB) (rowCount int64, err error) {
     deleteStatement := `{{ .Style.Rebind (.Struct.DeleteStatement .TableName) }}`
 
     result, err := db.Exec(deleteStatement, {{ .Struct.DeleteBindVars }})
+
+    crudlib.PostDelete(r)
 
 	if err != nil {
 		return 0, err

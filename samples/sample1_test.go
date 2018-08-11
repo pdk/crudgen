@@ -99,7 +99,13 @@ func TestCrud(t *testing.T) {
 		t.Errorf("expected URL to be %s, but got %s", x.URL, data[0].URL)
 	}
 
+	// verify the PreInsert method was invoked.
+	if data[0].URL != "https://www.guam.net" {
+		t.Errorf("expected URL to be https://www.guam.net, but got %s", data[0].URL)
+	}
+
 	x.URL = "http://google.com/"
+	x.Name = ""
 
 	timeTwo := time.Now()
 
@@ -125,6 +131,10 @@ func TestCrud(t *testing.T) {
 
 	if x.UpdatedAt.Before(timeTwo) {
 		t.Errorf("expected updated_at to be updated, but %s is before %s", x.UpdatedAt.String(), timeTwo.String())
+	}
+
+	if data1.Name != "(no name available)" {
+		t.Errorf("expected name to be '(no name available)', but got '%s'", data1.Name)
 	}
 
 	rowCount, err = x.Delete(globalDB)

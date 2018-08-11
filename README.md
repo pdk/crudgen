@@ -32,6 +32,26 @@ operations.
 On the other hand, composed structs are **not** handled. Only the fields
 directly listed in the struct definition are included in crud operations.
 
+## Hooks
+
+There are three available hooks:
+
+1. `PreInsert() error`
+2. `PreUpdate() error`
+3. `PostDelete()`
+
+The two `Pre`-hooks allow custom operations to be performed before the
+insert/update, or validation to be performed. If either returns a non-nil error,
+then the database operation will not happen.
+
+The `PostDelete()` hook allows "clean up" operations to be performed after a
+record has been deleted. This method has no option to return an error.
+
+To use these hooks, just define the methods on your struct type. The methods are
+detected dynamically, so they do not necessarily need to be in the same source
+file as your struct. (I.e. the methods are not detected during code generation,
+but during execution via type assertions.)
+
 ## Tests
 
 Tests assume a local postgres database to talk to.
