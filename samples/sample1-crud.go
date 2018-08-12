@@ -3,18 +3,17 @@
 package samples
 
 import (
-	"database/sql"
 	"github.com/pdk/crudgen/crudlib"
 	"time"
 )
 
 // Insert will insert one Story instance as a row in table stories.
-func (r *Story) Insert(db *sql.DB) error {
+func (r *Story) Insert(db crudlib.DBHandle) error {
 
 	r.CreatedAt = time.Now()
 	r.UpdatedAt = time.Now()
 
-	err := crudlib.PreInsert(r)
+	err := crudlib.PreInsert(db, r)
 	if err != nil {
 		return err
 	}
@@ -25,15 +24,19 @@ func (r *Story) Insert(db *sql.DB) error {
 	err = db.QueryRow(insertStatement, r.URL, r.MP3URL, r.MP3Duration, r.imageURLs, r.Name, r.Description, r.place, r.CreatedAt, r.UpdatedAt).Scan(&newID)
 	r.ID = newID
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	return crudlib.PostInsert(db, r)
 }
 
 // Update will update a row in table stories.
-func (r *Story) Update(db *sql.DB) (rowCount int64, err error) {
+func (r *Story) Update(db crudlib.DBHandle) (rowCount int64, err error) {
 
 	r.UpdatedAt = time.Now()
 
-	err = crudlib.PreUpdate(r)
+	err = crudlib.PreUpdate(db, r)
 	if err != nil {
 		return 0, err
 	}
@@ -46,23 +49,36 @@ func (r *Story) Update(db *sql.DB) (rowCount int64, err error) {
 		return 0, err
 	}
 
-	return result.RowsAffected()
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return rows, err
+	}
+
+	return rows, crudlib.PostUpdate(db, r)
 }
 
 // Delete will delete a row in table stories.
-func (r *Story) Delete(db *sql.DB) (rowCount int64, err error) {
+func (r *Story) Delete(db crudlib.DBHandle) (rowCount int64, err error) {
 
 	deleteStatement := `delete from stories where id = $1`
 
-	result, err := db.Exec(deleteStatement, r.ID)
+	err = crudlib.PreDelete(db, r)
+	if err != nil {
+		return 0, err
+	}
 
-	crudlib.PostDelete(r)
+	result, err := db.Exec(deleteStatement, r.ID)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return result.RowsAffected()
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return rows, err
+	}
+
+	return rows, crudlib.PostDelete(db, r)
 }
 
 // Select will select records from table stories and return a slice of
@@ -70,7 +86,7 @@ func (r *Story) Delete(db *sql.DB) (rowCount int64, err error) {
 // appended to the "select ... from stories" statement, using "?" for bind
 // variables.  E.g. "where foo = ?". bindValues must be provided in the correct
 // order to match bind placeholders in the additionalClauses.
-func Select(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]Story, error) {
+func Select(db crudlib.DBHandle, additionalClauses string, bindValues ...interface{}) ([]Story, error) {
 
 	selectStatement := `select stories.id, stories.url, stories.mp3_url, stories.mp3_duration, stories.image_urls, stories.name, stories.description, stories.place, stories.created_at, stories.updated_at from stories`
 
@@ -105,7 +121,7 @@ func Select(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]
 }
 
 // SelectAll does a Select with no additional conditions/clauses.
-func SelectAll(db *sql.DB) ([]Story, error) {
+func SelectAll(db crudlib.DBHandle) ([]Story, error) {
 	return Select(db, "")
 }
 
@@ -115,7 +131,7 @@ func SelectAll(db *sql.DB) ([]Story, error) {
 // variables.  E.g. "where foo = ?". bindValues must be provided in the correct
 // order to match bind placeholders in the additionalClauses.
 // Returns sql.ErrNoRows if no rows found.
-func SelectRow(db *sql.DB, additionalClauses string, bindValues ...interface{}) (Story, error) {
+func SelectRow(db crudlib.DBHandle, additionalClauses string, bindValues ...interface{}) (Story, error) {
 
 	selectStatement := `select stories.id, stories.url, stories.mp3_url, stories.mp3_duration, stories.image_urls, stories.name, stories.description, stories.place, stories.created_at, stories.updated_at from stories`
 

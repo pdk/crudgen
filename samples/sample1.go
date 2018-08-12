@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"github.com/pdk/crudgen/crudlib"
 )
 
 // Story has details about a single story.
@@ -25,7 +26,7 @@ type Story struct {
 	UpdatedAt   time.Time      `db:"updated_at" crud:"update_timestamp"`
 }
 
-func (s *Story) PreInsert() error {
+func (s *Story) PreInsert(db crudlib.DBHandle) error {
 	if strings.HasPrefix(s.URL, "http://") {
 		s.URL = strings.Replace(s.URL, "http://", "https://", 1)
 	}
@@ -33,7 +34,7 @@ func (s *Story) PreInsert() error {
 	return nil
 }
 
-func (s *Story) PreUpdate() error {
+func (s *Story) PreUpdate(db crudlib.DBHandle) error {
 	if s.Name == "" {
 		s.Name = "(no name available)"
 	}

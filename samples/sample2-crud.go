@@ -3,17 +3,16 @@
 package samples
 
 import (
-    "database/sql"
     "github.com/pdk/crudgen/crudlib"
     "time"
 )
 
 // Insert will insert one User instance as a row in table users.
-func (r *User) Insert(db *sql.DB) error {
+func (r *User) Insert(db crudlib.DBHandle) error {
     
     r.V.VersionAt = time.Now()
     
-    err := crudlib.PreInsert(r)
+    err := crudlib.PreInsert(db, r)
     if err != nil {
         return err
     }
@@ -24,15 +23,20 @@ func (r *User) Insert(db *sql.DB) error {
     err = db.QueryRow(insertStatement, r.V.UUID, r.V.VersionAt, r.V.ActiveVersion, r.Name, r.Email, r.Phone).Scan(&newID)
     r.V.VersionID = newID;
     
-	return err
+
+    if err != nil {
+        return err
+    }
+
+    return crudlib.PostInsert(db, r)
 }
 
 // Update will update a row in table users.
-func (r *User) Update(db *sql.DB) (rowCount int64, err error) {
+func (r *User) Update(db crudlib.DBHandle) (rowCount int64, err error) {
     
     r.V.VersionAt = time.Now()
     
-    err = crudlib.PreUpdate(r)
+    err = crudlib.PreUpdate(db, r)
     if err != nil {
         return 0, err
     }
@@ -45,23 +49,36 @@ func (r *User) Update(db *sql.DB) (rowCount int64, err error) {
 		return 0, err
 	}
 
-	return result.RowsAffected()
+    rows, err := result.RowsAffected()
+    if err != nil {
+        return rows, err
+    }
+
+    return rows, crudlib.PostUpdate(db, r)
 }
 
 // Delete will delete a row in table users.
-func (r *User) Delete(db *sql.DB) (rowCount int64, err error) {
+func (r *User) Delete(db crudlib.DBHandle) (rowCount int64, err error) {
 
     deleteStatement := `delete from users where version_id = $1`
 
-    result, err := db.Exec(deleteStatement, r.V.VersionID)
+    err = crudlib.PreDelete(db, r)
+    if err != nil {
+        return 0, err
+    }
 
-    crudlib.PostDelete(r)
+    result, err := db.Exec(deleteStatement, r.V.VersionID)
 
 	if err != nil {
 		return 0, err
 	}
 
-	return result.RowsAffected()
+	rows, err := result.RowsAffected()
+    if err != nil {
+        return rows, err
+    }
+
+    return rows, crudlib.PostDelete(db, r)
 }
 
 // SelectUsers will select records from table users and return a slice of
@@ -69,7 +86,7 @@ func (r *User) Delete(db *sql.DB) (rowCount int64, err error) {
 // appended to the "select ... from users" statement, using "?" for bind
 // variables.  E.g. "where foo = ?". bindValues must be provided in the correct
 // order to match bind placeholders in the additionalClauses.
-func SelectUsers(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]User, error) {
+func SelectUsers(db crudlib.DBHandle, additionalClauses string, bindValues ...interface{}) ([]User, error) {
 
     selectStatement := `select users.uuid, users.version_id, users.version_at, users.active_version, users.name, users.email, users.phone from users`
 
@@ -104,10 +121,9 @@ func SelectUsers(db *sql.DB, additionalClauses string, bindValues ...interface{}
 }
 
 // SelectUsersAll does a Select with no additional conditions/clauses.
-func SelectUsersAll(db *sql.DB) ([]User, error) {
+func SelectUsersAll(db crudlib.DBHandle) ([]User, error) {
     return SelectUsers(db, "")
 }
-
 
 // SelectUsersRow will select one record from table users and return a
 // User. The additionalClauses argument should be SQL to be
@@ -115,7 +131,7 @@ func SelectUsersAll(db *sql.DB) ([]User, error) {
 // variables.  E.g. "where foo = ?". bindValues must be provided in the correct
 // order to match bind placeholders in the additionalClauses.
 // Returns sql.ErrNoRows if no rows found.
-func SelectUsersRow(db *sql.DB, additionalClauses string, bindValues ...interface{}) (User, error) {
+func SelectUsersRow(db crudlib.DBHandle, additionalClauses string, bindValues ...interface{}) (User, error) {
 
     selectStatement := `select users.uuid, users.version_id, users.version_at, users.active_version, users.name, users.email, users.phone from users`
 

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"testing"
+
+	"github.com/pdk/crudgen/crudlib"
 )
 
 const (
@@ -45,7 +47,21 @@ func TestUsersCrud(t *testing.T) {
 		Phone: "666-999-1234",
 	}
 
+	t.Logf("pre-insert uuid: %s", x.V.UUID)
+
 	err := x.Insert(globalDB)
+
+	if err != nil {
+		t.Errorf("did not expect error, but got %s", err)
+	}
+
+	t.Logf("post-insert uuid: %s", x.V.UUID)
+
+	x.Phone = "999-666-1234"
+
+	err = crudlib.InTransaction(globalDB, func(db crudlib.DBHandle) error {
+		return x.Insert(db)
+	})
 
 	if err != nil {
 		t.Errorf("did not expect error, but got %s", err)
