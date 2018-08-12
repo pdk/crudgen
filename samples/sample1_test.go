@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	host                 = "localhost"
-	port                 = 5432
-	user                 = "crud_test"
-	password             = "MudCrud"
-	dbName               = "crud_test"
-	createTableStatement = `
+	host                        = "localhost"
+	port                        = 5432
+	user                        = "crud_test"
+	password                    = "MudCrud"
+	dbName                      = "crud_test"
+	createStoriesTableStatement = `
 		create table if not exists stories (
 			id serial not null primary key,
 			url text,
@@ -44,7 +44,7 @@ func init() {
 		log.Fatalf("%s", err)
 	}
 
-	_, err = globalDB.Exec(createTableStatement)
+	_, err = globalDB.Exec(createStoriesTableStatement)
 	if err != nil {
 		log.Fatalf("%s", err)
 	}

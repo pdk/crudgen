@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/pdk/crudgen/crudlib"
 )
@@ -15,17 +16,19 @@ func init() {
 	flag.StringVar(&tableName, "table", "", "name of the database table")
 	flag.Var(&bindStyle, "bindstyle", "bind style, one of 'question', 'dollar' or 'named'")
 	flag.StringVar(&selectName, "select", "Select", "name of the function for executing a query")
+	flag.StringVar(&compositions, "compose", "", "structs to compose, e.g.: StandardFields,V:Version")
 
 	flag.Parse()
 }
 
 var (
-	packageName string
-	structName  string
-	tableName   string
-	bindStyle   crudlib.BindStyle
-	outFileName string
-	selectName  string
+	packageName  string
+	structName   string
+	tableName    string
+	bindStyle    crudlib.BindStyle
+	outFileName  string
+	selectName   string
+	compositions string
 )
 
 func main() {
@@ -42,9 +45,39 @@ func main() {
 
 	s := selectStruct(structName, structs)
 
+	compose(s, compositions, structs)
+
 	outFile := resolveOutFile(outFileName)
 
 	PrintTemplate(outFile, packageName, tableName, *s, bindStyle, selectName)
+}
+
+func compose(s *Struct, compositions string, structMap map[string]*Struct) {
+
+	if compositions == "" {
+		return
+	}
+
+	for _, cpair := range strings.Split(compositions, ",") {
+		bits := strings.Split(cpair, ":")
+		var name, structName string
+		switch len(bits) {
+		case 1:
+			name = bits[0]
+			structName = bits[0]
+		case 2:
+			name = bits[0]
+			structName = bits[1]
+		default:
+			log.Fatalf("unable to parse compositions: %s", compositions)
+		}
+		cStruct, ok := structMap[structName]
+		if !ok {
+			log.Fatalf("struct '%s' not found in input file(s)", structName)
+		}
+
+		s.Compose(name, *cStruct)
+	}
 }
 
 // selectStruct figures out which of the structs found in the .go file to process.
@@ -57,7 +90,7 @@ func selectStruct(structName string, structs map[string]*Struct) *Struct {
 	if structName != "" {
 		s, ok := structs[structName]
 		if !ok {
-			log.Fatalf("struct %s not found.\n", structName)
+			log.Fatalf("struct '%s' not found.\n", structName)
 		}
 
 		return s

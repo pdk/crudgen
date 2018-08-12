@@ -1,6 +1,6 @@
 package samples
 
-//go:generate crudgen -out sample1-crud.go -package $GOPACKAGE -bindstyle dollar -table stories $GOFILE
+//go:generate crudgen -out sample1-crud.go -package $GOPACKAGE -bindstyle dollar -table stories -select Select $GOFILE
 //go:generate gofmt -w sample1-crud.go
 
 import (

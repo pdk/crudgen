@@ -10,21 +10,39 @@ import (
 // Values used to identify particular columns for insert/update/delete
 // operations.
 const (
-	AutoIncr = "autoincr"
-	Key      = "key"
+	AutoIncr        = "autoincr"
+	Key             = "key"
+	CreateTimestamp = "create_timestamp"
+	UpdateTimestamp = "update_timestamp"
 )
+
+// Struct is a struct declaration we found in the source file.
+type Struct struct {
+	Name   string
+	Fields []Field
+	Comps  []Composition
+}
 
 // Field is what we found in a struct declaration.
 type Field struct {
 	Name    string
 	DBTag   string
 	CrudTag string
+	Prefix  string
 }
 
-// Struct is a struct declaration we found in the source file.
-type Struct struct {
-	Name   string
-	Fields []Field
+// Composition is another struct that is composed into the struct.
+type Composition struct {
+	Name     string
+	Composed Struct
+}
+
+// Compose adds another struct to be composed.
+func (s *Struct) Compose(name string, comp Struct) {
+	s.Comps = append(s.Comps, Composition{
+		Name:     name,
+		Composed: comp,
+	})
 }
 
 // AppendField adds a field name/tag pair to a Struct.
@@ -47,6 +65,28 @@ func NewStruct(name string) *Struct {
 	return &s
 }
 
+// AllFields recursively builds a list of all the fields in the struct.
+func (s Struct) AllFields() []Field {
+	all := make([]Field, 0)
+	skipNames := make(map[string]bool)
+
+	for _, c := range s.Comps {
+		for _, fld := range c.Composed.AllFields() {
+			fld.Prefix = c.Name + "." + fld.Prefix
+			all = append(all, fld)
+		}
+		skipNames[c.Name] = true
+	}
+
+	for _, f := range s.Fields {
+		if !skipNames[f.Name] {
+			all = append(all, f)
+		}
+	}
+
+	return all
+}
+
 // ColumnName returns either the DBTag value or snake-case of the Name.
 func (f Field) ColumnName() string {
 	if f.DBTag != "" {
@@ -56,112 +96,111 @@ func (f Field) ColumnName() string {
 	return strcase.ToSnake(f.Name)
 }
 
-func (s Struct) insertColumnNames() []string {
-	v := []string{}
-	for _, f := range s.Fields {
-		if f.CrudTag != AutoIncr {
-			v = append(v, f.ColumnName())
+// FieldName returns Prefix+Name.
+func (f Field) FieldName() string {
+	return f.Prefix + f.Name
+}
+
+// pickFields filters a slice of Fields
+func pickFields(fields []Field, picker func(Field) bool) []Field {
+	l := make([]Field, 0)
+	for _, f := range fields {
+		if picker(f) {
+			l = append(l, f)
 		}
 	}
 
-	return v
+	return l
 }
 
-func (s Struct) insertFieldNames() []string {
+// columnNames gets the ColumnNames (database names) of a slice of Fields.
+func columnNames(fields []Field) []string {
 	v := []string{}
-	for _, f := range s.Fields {
-		if f.CrudTag != AutoIncr {
-			v = append(v, f.Name)
-		}
-	}
-
-	return v
-}
-
-func (s Struct) valueColumnNames() []string {
-	v := []string{}
-	for _, f := range s.Fields {
-		if f.CrudTag != AutoIncr && f.CrudTag != Key {
-			v = append(v, f.ColumnName())
-		}
-	}
-
-	return v
-}
-
-func (s Struct) valueFieldNames() []string {
-	v := []string{}
-	for _, f := range s.Fields {
-		if f.CrudTag != AutoIncr && f.CrudTag != Key {
-			v = append(v, f.Name)
-		}
-	}
-
-	return v
-}
-
-func (s Struct) keyColumnNames() []string {
-	v := []string{}
-	for _, f := range s.Fields {
-		if f.CrudTag == AutoIncr || f.CrudTag == Key {
-			v = append(v, f.ColumnName())
-		}
-	}
-
-	return v
-}
-
-func (s Struct) keyFieldNames() []string {
-	v := []string{}
-	for _, f := range s.Fields {
-		if f.CrudTag == AutoIncr || f.CrudTag == Key {
-			v = append(v, f.Name)
-		}
-	}
-
-	return v
-}
-
-func (s Struct) selectColumnNames() []string {
-	v := []string{}
-	for _, f := range s.Fields {
+	for _, f := range fields {
 		v = append(v, f.ColumnName())
 	}
 
 	return v
 }
 
-func (s Struct) selectFieldNames() []string {
+// fieldNames gets the FieldNames (go name) of a slice of Fields.
+func fieldNames(fields []Field) []string {
 	v := []string{}
-	for _, f := range s.Fields {
-		v = append(v, f.Name)
+	for _, f := range fields {
+		v = append(v, f.FieldName())
 	}
 
 	return v
 }
 
+func isAutoIncr(f Field) bool {
+	return f.CrudTag == AutoIncr
+}
+
+func notAutoIncr(f Field) bool {
+	return !isAutoIncr(f)
+}
+
+func (s Struct) insertColumnNames() []string {
+	return columnNames(pickFields(s.AllFields(), notAutoIncr))
+}
+
+func (s Struct) insertFieldNames() []string {
+	return fieldNames(pickFields(s.AllFields(), notAutoIncr))
+}
+
+func isKey(f Field) bool {
+	return f.CrudTag == Key || f.CrudTag == AutoIncr
+}
+
+func notKey(f Field) bool {
+	return !isKey(f)
+}
+
+func (s Struct) valueColumnNames() []string {
+	return columnNames(pickFields(s.AllFields(), notKey))
+}
+
+func (s Struct) valueFieldNames() []string {
+	return fieldNames(pickFields(s.AllFields(), notKey))
+}
+
+func (s Struct) keyColumnNames() []string {
+	return columnNames(pickFields(s.AllFields(), isKey))
+}
+
+func (s Struct) keyFieldNames() []string {
+	return fieldNames(pickFields(s.AllFields(), isKey))
+}
+
+func (s Struct) selectColumnNames() []string {
+	return columnNames(s.AllFields())
+}
+
+func (s Struct) selectFieldNames() []string {
+	return fieldNames(s.AllFields())
+}
+
 // AutoIncrColumnName returns the name of the column marked with crud tag
 // AutoIncr.
 func (s Struct) AutoIncrColumnName() string {
-	for _, f := range s.Fields {
-		if f.CrudTag == AutoIncr {
-			return f.ColumnName()
-		}
+	f := columnNames(pickFields(s.AllFields(), isAutoIncr))
+	if len(f) == 0 {
+		return ""
 	}
 
-	return ""
+	return f[0]
 }
 
 // AutoIncrFieldName returns the name of the column marked with crud tag
 // AutoIncr.
 func (s Struct) AutoIncrFieldName() string {
-	for _, f := range s.Fields {
-		if f.CrudTag == AutoIncr {
-			return f.Name
-		}
+	f := fieldNames(pickFields(s.AllFields(), isAutoIncr))
+	if len(f) == 0 {
+		return ""
 	}
 
-	return ""
+	return f[0]
 }
 
 // HasAutoIncrColumn returns true/false indicating if one of the columns is
@@ -221,24 +260,20 @@ func (s Struct) ScanVars(structVarName string) string {
 		s.selectFieldNames(), ", "+prefix)
 }
 
+func isCreateTimestamp(f Field) bool {
+	return f.CrudTag == CreateTimestamp
+}
+
+func isUpdateTimestamp(f Field) bool {
+	return f.CrudTag == UpdateTimestamp
+}
+
 // CreateTimestampFields returns range of fields with auto created timestamp.
 func (s Struct) CreateTimestampFields() []Field {
-	v := []Field{}
-	for _, f := range s.Fields {
-		if f.CrudTag == "create_timestamp" {
-			v = append(v, f)
-		}
-	}
-	return v
+	return pickFields(s.AllFields(), isCreateTimestamp)
 }
 
 // UpdateTimestampFields returns range of fields with auto updated timestamp.
 func (s Struct) UpdateTimestampFields() []Field {
-	v := []Field{}
-	for _, f := range s.Fields {
-		if f.CrudTag == "update_timestamp" {
-			v = append(v, f)
-		}
-	}
-	return v
+	return pickFields(s.AllFields(), isUpdateTimestamp)
 }
