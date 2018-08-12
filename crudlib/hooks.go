@@ -1,81 +1,83 @@
 package crudlib
 
+import "database/sql"
+
 // PreInserter offers a pre-insert operation which might return an error to
 // indicate the operation should be aborted.
 type PreInserter interface {
-	PreInsert(DBHandle) error
+	PreInsert(*sql.Tx) error
 }
 
 // PostInserter offers a post-insert operation.
 type PostInserter interface {
-	PostInsert(DBHandle) error
+	PostInsert(*sql.Tx) error
 }
 
 // PreUpdater offers a pre-update operation which might return an error to
 // indicate the operation should be aborted.
 type PreUpdater interface {
-	PreUpdate(DBHandle) error
+	PreUpdate(*sql.Tx) error
 }
 
 // PostUpdater offers a post-update operation.
 type PostUpdater interface {
-	PostUpdate(DBHandle) error
+	PostUpdate(*sql.Tx) error
 }
 
 // PreDeleter offers a pre-delete operation.
 type PreDeleter interface {
-	PreDelete(DBHandle) error
+	PreDelete(*sql.Tx) error
 }
 
 // PostDeleter offers a post-deletion operation.
 type PostDeleter interface {
-	PostDelete(DBHandle) error
+	PostDelete(*sql.Tx) error
 }
 
 // PreInsert checks if the passed in item has a PreInsert method and invokes it.
-func PreInsert(db DBHandle, item interface{}) error {
+func PreInsert(tx *sql.Tx, item interface{}) error {
 	if chk, ok := item.(PreInserter); ok {
-		return chk.PreInsert(db)
+		return chk.PreInsert(tx)
 	}
 	return nil
 }
 
 // PostInsert checks if the passed in item has a PostInsert method and invokes it.
-func PostInsert(db DBHandle, item interface{}) error {
+func PostInsert(tx *sql.Tx, item interface{}) error {
 	if chk, ok := item.(PostInserter); ok {
-		return chk.PostInsert(db)
+		return chk.PostInsert(tx)
 	}
 	return nil
 }
 
 // PreUpdate checks if the passed in item has a PreUpdate method and invokes it.
-func PreUpdate(db DBHandle, item interface{}) error {
+func PreUpdate(tx *sql.Tx, item interface{}) error {
 	if chk, ok := item.(PreUpdater); ok {
-		return chk.PreUpdate(db)
+		return chk.PreUpdate(tx)
 	}
 	return nil
 }
 
 // PostUpdate checks if the passed in item has a PostUpdate method and invokes it.
-func PostUpdate(db DBHandle, item interface{}) error {
+func PostUpdate(tx *sql.Tx, item interface{}) error {
 	if chk, ok := item.(PostUpdater); ok {
-		return chk.PostUpdate(db)
+		return chk.PostUpdate(tx)
 	}
 	return nil
 }
 
 // PreDelete checks if the passed in item has a PreDelete method and invokes it.
-func PreDelete(db DBHandle, item interface{}) error {
+func PreDelete(tx *sql.Tx, item interface{}) error {
 	if chk, ok := item.(PreDeleter); ok {
-		return chk.PreDelete(db)
+		return chk.PreDelete(tx)
 	}
 	return nil
 }
 
 // PostDelete checks if the passed in item has a PostDelete method and invokes it.
-func PostDelete(db DBHandle, item interface{}) error {
+func PostDelete(tx *sql.Tx, item interface{}) error {
 	if chk, ok := item.(PostDeleter); ok {
-		return chk.PostDelete(db)
+		return chk.PostDelete(tx)
 	}
 	return nil
 }

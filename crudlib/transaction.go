@@ -5,17 +5,8 @@ import (
 	"fmt"
 )
 
-// DBHandle can be either a *sql.DB or a *sql.Tx. To allow CRUD and hook methods
-// to be flexible about transaction management.
-type DBHandle interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Prepare(query string) (*sql.Stmt, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
-}
-
 // InTransaction wraps an operation in BEGIN/COMMIT.
-func InTransaction(db *sql.DB, operation func(DBHandle) error) error {
+func InTransaction(db *sql.DB, operation func(*sql.Tx) error) error {
 
 	tx, err := db.Begin()
 	if err != nil {

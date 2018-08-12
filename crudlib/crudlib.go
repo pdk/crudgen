@@ -30,6 +30,7 @@ func (bs *BindStyle) String() string {
 	}
 }
 
+// ConstName returns the go-name of a BindStyle.
 func (bs BindStyle) ConstName() string {
 	switch bs {
 	case DollarNum:

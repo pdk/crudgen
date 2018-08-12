@@ -3,16 +3,25 @@
 package samples
 
 import (
-    "github.com/pdk/crudgen/crudlib"
-    "time"
+	"database/sql"
+	"time"
+
+	"github.com/pdk/crudgen/crudlib"
 )
 
 // Insert will insert one User instance as a row in table users.
-func (r *User) Insert(db crudlib.DBHandle) error {
+func (r *User) Insert(db *sql.DB) error {
+    return crudlib.InTransaction(db, func (tx *sql.Tx) error {
+        return r.InsertTx(tx)
+    })
+}
+
+// InsertTx will insert, given a transaction.
+func (r *User) InsertTx(tx *sql.Tx) error {
     
     r.V.VersionAt = time.Now()
     
-    err := crudlib.PreInsert(db, r)
+    err := crudlib.PreInsert(tx, r)
     if err != nil {
         return err
     }
@@ -20,7 +29,7 @@ func (r *User) Insert(db crudlib.DBHandle) error {
     insertStatement := `insert into users (uuid, version_at, active_version, name, email, phone) values ($1, $2, $3, $4, $5, $6) returning version_id`
     
     var newID int64
-    err = db.QueryRow(insertStatement, r.V.UUID, r.V.VersionAt, r.V.ActiveVersion, r.Name, r.Email, r.Phone).Scan(&newID)
+    err = tx.QueryRow(insertStatement, r.V.UUID, r.V.VersionAt, r.V.ActiveVersion, r.Name, r.Email, r.Phone).Scan(&newID)
     r.V.VersionID = newID;
     
 
@@ -28,22 +37,32 @@ func (r *User) Insert(db crudlib.DBHandle) error {
         return err
     }
 
-    return crudlib.PostInsert(db, r)
+    return crudlib.PostInsert(tx, r)
 }
 
 // Update will update a row in table users.
-func (r *User) Update(db crudlib.DBHandle) (rowCount int64, err error) {
+func (r *User) Update(db *sql.DB) (rowCount int64, err error) {
+    err = crudlib.InTransaction(db, func (tx *sql.Tx) error {
+        rowCount, err = r.UpdateTx(tx)
+        return err
+    })
+
+    return rowCount, err
+}
+
+// UpdateTx will update a row, within a transaction.
+func (r *User) UpdateTx(tx *sql.Tx) (rowCount int64, err error) {
     
     r.V.VersionAt = time.Now()
     
-    err = crudlib.PreUpdate(db, r)
+    err = crudlib.PreUpdate(tx, r)
     if err != nil {
         return 0, err
     }
 
     updateStatement := `update users set uuid = $1, version_at = $2, active_version = $3, name = $4, email = $5, phone = $6 where version_id = $7`
 
-    result, err := db.Exec(updateStatement, r.V.UUID, r.V.VersionAt, r.V.ActiveVersion, r.Name, r.Email, r.Phone, r.V.VersionID)
+    result, err := tx.Exec(updateStatement, r.V.UUID, r.V.VersionAt, r.V.ActiveVersion, r.Name, r.Email, r.Phone, r.V.VersionID)
 
 	if err != nil {
 		return 0, err
@@ -54,20 +73,30 @@ func (r *User) Update(db crudlib.DBHandle) (rowCount int64, err error) {
         return rows, err
     }
 
-    return rows, crudlib.PostUpdate(db, r)
+    return rows, crudlib.PostUpdate(tx, r)
 }
 
 // Delete will delete a row in table users.
-func (r *User) Delete(db crudlib.DBHandle) (rowCount int64, err error) {
+func (r *User) Delete(db *sql.DB) (rowCount int64, err error) {
+    err = crudlib.InTransaction(db, func (tx *sql.Tx) error {
+        rowCount, err = r.DeleteTx(tx)
+        return err
+    })
+
+    return rowCount, err
+}
+
+// DeleteTx executes PreDelete, delete, and PostDelete within a transaction.
+func (r *User) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 
     deleteStatement := `delete from users where version_id = $1`
 
-    err = crudlib.PreDelete(db, r)
+    err = crudlib.PreDelete(tx, r)
     if err != nil {
         return 0, err
     }
 
-    result, err := db.Exec(deleteStatement, r.V.VersionID)
+    result, err := tx.Exec(deleteStatement, r.V.VersionID)
 
 	if err != nil {
 		return 0, err
@@ -78,7 +107,7 @@ func (r *User) Delete(db crudlib.DBHandle) (rowCount int64, err error) {
         return rows, err
     }
 
-    return rows, crudlib.PostDelete(db, r)
+    return rows, crudlib.PostDelete(tx, r)
 }
 
 // SelectUsers will select records from table users and return a slice of
@@ -86,7 +115,7 @@ func (r *User) Delete(db crudlib.DBHandle) (rowCount int64, err error) {
 // appended to the "select ... from users" statement, using "?" for bind
 // variables.  E.g. "where foo = ?". bindValues must be provided in the correct
 // order to match bind placeholders in the additionalClauses.
-func SelectUsers(db crudlib.DBHandle, additionalClauses string, bindValues ...interface{}) ([]User, error) {
+func SelectUsers(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]User, error) {
 
     selectStatement := `select users.uuid, users.version_id, users.version_at, users.active_version, users.name, users.email, users.phone from users`
 
@@ -121,7 +150,7 @@ func SelectUsers(db crudlib.DBHandle, additionalClauses string, bindValues ...in
 }
 
 // SelectUsersAll does a Select with no additional conditions/clauses.
-func SelectUsersAll(db crudlib.DBHandle) ([]User, error) {
+func SelectUsersAll(db *sql.DB) ([]User, error) {
     return SelectUsers(db, "")
 }
 
@@ -131,7 +160,7 @@ func SelectUsersAll(db crudlib.DBHandle) ([]User, error) {
 // variables.  E.g. "where foo = ?". bindValues must be provided in the correct
 // order to match bind placeholders in the additionalClauses.
 // Returns sql.ErrNoRows if no rows found.
-func SelectUsersRow(db crudlib.DBHandle, additionalClauses string, bindValues ...interface{}) (User, error) {
+func SelectUsersRow(db *sql.DB, additionalClauses string, bindValues ...interface{}) (User, error) {
 
     selectStatement := `select users.uuid, users.version_id, users.version_at, users.active_version, users.name, users.email, users.phone from users`
 

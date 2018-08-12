@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log"
 	"testing"
-
-	"github.com/pdk/crudgen/crudlib"
 )
 
 const (
@@ -47,7 +45,7 @@ func TestUsersCrud(t *testing.T) {
 		Phone: "666-999-1234",
 	}
 
-	t.Logf("pre-insert uuid: %s", x.V.UUID)
+	oldUUID := x.V.UUID
 
 	err := x.Insert(globalDB)
 
@@ -55,16 +53,21 @@ func TestUsersCrud(t *testing.T) {
 		t.Errorf("did not expect error, but got %s", err)
 	}
 
-	t.Logf("post-insert uuid: %s", x.V.UUID)
+	if x.V.UUID == oldUUID {
+		t.Errorf("expected to get a new UUID")
+	}
 
+	oldUUID = x.V.UUID
 	x.Phone = "999-666-1234"
 
-	err = crudlib.InTransaction(globalDB, func(db crudlib.DBHandle) error {
-		return x.Insert(db)
-	})
+	err = x.Insert(globalDB)
 
 	if err != nil {
 		t.Errorf("did not expect error, but got %s", err)
+	}
+
+	if x.V.UUID != oldUUID {
+		t.Errorf("did not expect UUID to change")
 	}
 }
 
@@ -77,7 +80,8 @@ func TestSelectUsers(t *testing.T) {
 	}
 
 	for _, user := range users {
-		t.Logf("user: %s\n", user.Email)
+		t.Logf("%s %s\n", user.V.UUID, user.Email)
 	}
 
+	_, _ = globalDB.Exec("delete from users")
 }

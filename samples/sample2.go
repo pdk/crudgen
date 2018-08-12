@@ -4,10 +4,10 @@ package samples
 //go:generate gofmt -w sample1-crud.go
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/pdk/crudgen/crudlib"
 	"github.com/pdk/crudgen/samples/version"
 )
 
@@ -19,7 +19,7 @@ type User struct {
 	Phone string
 }
 
-func (u *User) PreInsert(db crudlib.DBHandle) error {
+func (u *User) PreInsert(tx *sql.Tx) error {
 	if u.V.UUID.String() == "00000000-0000-0000-0000-000000000000" {
 		u.V.UUID = uuid.New()
 	}
@@ -27,7 +27,7 @@ func (u *User) PreInsert(db crudlib.DBHandle) error {
 	return nil
 }
 
-func (u *User) PostInsert(db crudlib.DBHandle) error {
+func (u *User) PostInsert(tx *sql.Tx) error {
 
 	deactivateSQL := `
 		update users
@@ -46,12 +46,12 @@ func (u *User) PostInsert(db crudlib.DBHandle) error {
 			where uuid = $2
 		)`
 
-	_, err := db.Exec(deactivateSQL, u.V.UUID)
+	_, err := tx.Exec(deactivateSQL, u.V.UUID)
 	if err != nil {
 		return fmt.Errorf("unable to deactivate old versions for %s: %s", u.V.UUID, err)
 	}
 
-	_, err = db.Exec(activateSQL, u.V.UUID, u.V.UUID)
+	_, err = tx.Exec(activateSQL, u.V.UUID, u.V.UUID)
 	if err != nil {
 		return fmt.Errorf("unable to activate newest versions for %s: %s", u.V.UUID, err)
 	}

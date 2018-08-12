@@ -3,17 +3,26 @@
 package {{ .PackageName }}
 
 import (
-    "github.com/pdk/crudgen/crudlib"
-    "time"
+	"database/sql"
+	"time"
+
+	"github.com/pdk/crudgen/crudlib"
 )
 
 // Insert will insert one {{ .Struct.Name }} instance as a row in table {{ .TableName }}.
-func (r *{{.Struct.Name}}) Insert(db crudlib.DBHandle) error {
+func (r *{{.Struct.Name}}) Insert(db *sql.DB) error {
+    return crudlib.InTransaction(db, func (tx *sql.Tx) error {
+        return r.InsertTx(tx)
+    })
+}
+
+// InsertTx will insert, given a transaction.
+func (r *{{.Struct.Name}}) InsertTx(tx *sql.Tx) error {
     {{ range .Struct.CreateTimestampFields }}
     r.{{ .FieldName }} = time.Now(){{ end }}{{ range .Struct.UpdateTimestampFields }}
     r.{{ .FieldName }} = time.Now()
     {{ end }}
-    err := crudlib.PreInsert(db, r)
+    err := crudlib.PreInsert(tx, r)
     if err != nil {
         return err
     }
@@ -21,32 +30,42 @@ func (r *{{.Struct.Name}}) Insert(db crudlib.DBHandle) error {
     insertStatement := `{{ .Style.Rebind (.Struct.InsertStatement .TableName) }}`
     {{ if .Struct.HasAutoIncrColumn }}
     var newID int64
-    err = db.QueryRow(insertStatement, {{ .Struct.InsertBindVars }}).Scan(&newID)
+    err = tx.QueryRow(insertStatement, {{ .Struct.InsertBindVars }}).Scan(&newID)
     r.{{ .Struct.AutoIncrFieldName }} = newID;
     {{ else }}
-    _, err = db.Exec(insertStatment, {{ .Struct.InsertBindVars }})
+    _, err = tx.Exec(insertStatment, {{ .Struct.InsertBindVars }})
     {{ end }}
 
     if err != nil {
         return err
     }
 
-    return crudlib.PostInsert(db, r)
+    return crudlib.PostInsert(tx, r)
 }
 
 // Update will update a row in table {{ .TableName }}.
-func (r *{{ .Struct.Name }}) Update(db crudlib.DBHandle) (rowCount int64, err error) {
+func (r *{{ .Struct.Name }}) Update(db *sql.DB) (rowCount int64, err error) {
+    err = crudlib.InTransaction(db, func (tx *sql.Tx) error {
+        rowCount, err = r.UpdateTx(tx)
+        return err
+    })
+
+    return rowCount, err
+}
+
+// UpdateTx will update a row, within a transaction.
+func (r *{{ .Struct.Name }}) UpdateTx(tx *sql.Tx) (rowCount int64, err error) {
     {{ range .Struct.UpdateTimestampFields }}
     r.{{ .FieldName }} = time.Now()
     {{ end }}
-    err = crudlib.PreUpdate(db, r)
+    err = crudlib.PreUpdate(tx, r)
     if err != nil {
         return 0, err
     }
 
     updateStatement := `{{ .Style.Rebind (.Struct.UpdateStatement .TableName) }}`
 
-    result, err := db.Exec(updateStatement, {{ .Struct.UpdateBindVars }})
+    result, err := tx.Exec(updateStatement, {{ .Struct.UpdateBindVars }})
 
 	if err != nil {
 		return 0, err
@@ -57,20 +76,30 @@ func (r *{{ .Struct.Name }}) Update(db crudlib.DBHandle) (rowCount int64, err er
         return rows, err
     }
 
-    return rows, crudlib.PostUpdate(db, r)
+    return rows, crudlib.PostUpdate(tx, r)
 }
 
 // Delete will delete a row in table {{ .TableName }}.
-func (r *{{ .Struct.Name }}) Delete(db crudlib.DBHandle) (rowCount int64, err error) {
+func (r *{{ .Struct.Name }}) Delete(db *sql.DB) (rowCount int64, err error) {
+    err = crudlib.InTransaction(db, func (tx *sql.Tx) error {
+        rowCount, err = r.DeleteTx(tx)
+        return err
+    })
+
+    return rowCount, err
+}
+
+// DeleteTx executes PreDelete, delete, and PostDelete within a transaction.
+func (r *{{ .Struct.Name }}) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 
     deleteStatement := `{{ .Style.Rebind (.Struct.DeleteStatement .TableName) }}`
 
-    err = crudlib.PreDelete(db, r)
+    err = crudlib.PreDelete(tx, r)
     if err != nil {
         return 0, err
     }
 
-    result, err := db.Exec(deleteStatement, {{ .Struct.DeleteBindVars }})
+    result, err := tx.Exec(deleteStatement, {{ .Struct.DeleteBindVars }})
 
 	if err != nil {
 		return 0, err
@@ -81,7 +110,7 @@ func (r *{{ .Struct.Name }}) Delete(db crudlib.DBHandle) (rowCount int64, err er
         return rows, err
     }
 
-    return rows, crudlib.PostDelete(db, r)
+    return rows, crudlib.PostDelete(tx, r)
 }
 
 // {{ .Select }} will select records from table {{ .TableName }} and return a slice of
@@ -89,7 +118,7 @@ func (r *{{ .Struct.Name }}) Delete(db crudlib.DBHandle) (rowCount int64, err er
 // appended to the "select ... from {{ .TableName }}" statement, using "?" for bind
 // variables.  E.g. "where foo = ?". bindValues must be provided in the correct
 // order to match bind placeholders in the additionalClauses.
-func {{ .Select }}(db crudlib.DBHandle, additionalClauses string, bindValues ...interface{}) ([]{{ .Struct.Name }}, error) {
+func {{ .Select }}(db *sql.DB, additionalClauses string, bindValues ...interface{}) ([]{{ .Struct.Name }}, error) {
 
     selectStatement := `{{ .Struct.SelectStatement .TableName }}`
 
@@ -124,7 +153,7 @@ func {{ .Select }}(db crudlib.DBHandle, additionalClauses string, bindValues ...
 }
 
 // {{ .Select }}All does a Select with no additional conditions/clauses.
-func {{ .Select }}All(db crudlib.DBHandle) ([]{{ .Struct.Name }}, error) {
+func {{ .Select }}All(db *sql.DB) ([]{{ .Struct.Name }}, error) {
     return {{ .Select }}(db, "")
 }
 
@@ -134,7 +163,7 @@ func {{ .Select }}All(db crudlib.DBHandle) ([]{{ .Struct.Name }}, error) {
 // variables.  E.g. "where foo = ?". bindValues must be provided in the correct
 // order to match bind placeholders in the additionalClauses.
 // Returns sql.ErrNoRows if no rows found.
-func {{ .Select }}Row(db crudlib.DBHandle, additionalClauses string, bindValues ...interface{}) ({{ .Struct.Name }}, error) {
+func {{ .Select }}Row(db *sql.DB, additionalClauses string, bindValues ...interface{}) ({{ .Struct.Name }}, error) {
 
     selectStatement := `{{ .Struct.SelectStatement .TableName }}`
 
