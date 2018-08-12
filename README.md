@@ -19,6 +19,27 @@ Currently depends on $GOPATH to find the template.
 
 (gofmt added cuz default output is not yet canonical.)
 
+## Struct Composition
+
+This system is not smart enough to understand complex structs with composition,
+but there is a command-line option to explicitly handle such cases.
+
+For example:
+
+```
+-struct User -compose V:Version
+```
+
+This indicates that the `User` struct is the one we want to generate CRUD
+operations for, and it is composed on a `Version` struct, named `V` within
+`User`.
+
+Only a single level of composition is handled, but multiple structs can be
+included like `-compose S1:Struct1,S2:Struct2`.
+
+Also, the structs may exist in other files. Just list all the input .go files to
+the `crudgen` command.
+
 ## Requirements
 
 The struct fields must be of types suitable for use with database/sql, e.g.
@@ -34,23 +55,33 @@ directly listed in the struct definition are included in crud operations.
 
 ## Hooks
 
-There are three available hooks:
+There are Pre- and Post- hooks for insert, update and delete:
 
-1. `PreInsert() error`
-2. `PreUpdate() error`
-3. `PostDelete()`
+1. `PreInsert(tx *sql.TX) error` and `PostInsert(tx *sql.TX) error`
+2. `PreUpdate(tx *sql.TX) error` and `PostUpdate(tx *sql.TX) error`
+3. `PreDelete(tx *sql.TX) error` and `PostDelete(tx *sql.TX) error`
 
-The two `Pre`-hooks allow custom operations to be performed before the
-insert/update, or validation to be performed. If either returns a non-nil error,
-then the database operation will not happen.
+The current transaction is passed to each hook, so that additional database
+operations may be performed.
 
-The `PostDelete()` hook allows "clean up" operations to be performed after a
-record has been deleted. This method has no option to return an error.
+To use any of these hooks, just define the methods on your struct type. The
+methods are detected dynamically via type assertions, so they do not necessarily
+need to be in the same source file as your struct. (I.e. the methods are not
+detected during code generation, but during execution via type assertions.)
 
-To use these hooks, just define the methods on your struct type. The methods are
-detected dynamically, so they do not necessarily need to be in the same source
-file as your struct. (I.e. the methods are not detected during code generation,
-but during execution via type assertions.)
+## Transaction Management
+
+The insert, update and delete operations are each done within a single
+transaction, covering their Pre- and Post- hooks. If any error occurs, with the
+Pre- or Post- hook, or with the main operation itself, the transaction will be
+rolled back.
+
+If the caller wants to include more operations in the transaction, then they
+`InsertTx()`, `UpdateTx()` and `DeleteTx()` methods are available. Rather than
+passing in a `*sql.DB`, the caller passes in an already active `*sql.Tx`.
+
+The `crudlib.InTransaction()` function is available to wrap a set of operations
+in a single transaction.
 
 ## Tests
 
