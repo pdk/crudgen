@@ -48,7 +48,7 @@ func PreInsert(tx *sql.Tx, item interface{}) error {
 }
 
 // PostInsert checks if the passed in item has a PostInsert method and invokes it.
-func PostInsert(tx *sql.Tx, tableName string, item interface{}) error {
+func PostInsert(tx *sql.Tx, item interface{}, tableName string) error {
 	if chk, ok := item.(PostInserter); ok {
 		return chk.PostInsert(tx)
 	}
