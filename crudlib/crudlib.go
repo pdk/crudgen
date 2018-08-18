@@ -18,6 +18,19 @@ const (
 	ColonName
 )
 
+// Some standard errors that generated code may return.
+var (
+	NoRowsUpdated         error
+	MoreThanOneRowUpdated error
+	MoreThanOneRowDeleted error
+)
+
+func init() {
+	NoRowsUpdated = fmt.Errorf("update failed: no rows updated")
+	MoreThanOneRowUpdated = fmt.Errorf("update failed: tried to update more than one row")
+	MoreThanOneRowDeleted = fmt.Errorf("delete failed: tried to delete more than one row")
+}
+
 // String to satisfy flag.Var()
 func (bs *BindStyle) String() string {
 	switch *bs {

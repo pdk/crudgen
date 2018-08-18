@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"strings"
 
 	"github.com/iancoleman/strcase"
@@ -170,7 +171,11 @@ func (s Struct) keyColumnNames() []string {
 }
 
 func (s Struct) keyFieldNames() []string {
-	return fieldNames(pickFields(s.AllFields(), isKey))
+	l := fieldNames(pickFields(s.AllFields(), isKey))
+	if len(l) == 0 {
+		log.Fatalf("there are no key fields found")
+	}
+	return l
 }
 
 func (s Struct) selectColumnNames() []string {

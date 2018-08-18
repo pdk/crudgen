@@ -17,6 +17,7 @@ func init() {
 	flag.Var(&bindStyle, "bindstyle", "bind style, one of 'question', 'dollar' or 'named'")
 	flag.StringVar(&selectName, "select", "Select", "name of the function for executing a query")
 	flag.StringVar(&compositions, "compose", "", "structs to compose, e.g.: StandardFields,V:Version")
+	flag.BoolVar(&noUpdate, "noupdate", false, "disable creation of Update() method")
 
 	flag.Parse()
 }
@@ -29,6 +30,7 @@ var (
 	outFileName  string
 	selectName   string
 	compositions string
+	noUpdate     bool
 )
 
 func main() {
@@ -49,7 +51,7 @@ func main() {
 
 	outFile := resolveOutFile(outFileName)
 
-	PrintTemplate(outFile, packageName, tableName, *s, bindStyle, selectName)
+	PrintTemplate(outFile, packageName, tableName, *s, bindStyle, selectName, noUpdate)
 }
 
 func compose(s *Struct, compositions string, structMap map[string]*Struct) {

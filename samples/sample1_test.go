@@ -65,7 +65,7 @@ func TestCrud(t *testing.T) {
 
 	baseTime := time.Now()
 
-	err := x.Insert(globalDB)
+	x, err := x.Insert(globalDB)
 
 	if err != nil {
 		t.Errorf("did not expect error, but got %s", err)
@@ -109,14 +109,10 @@ func TestCrud(t *testing.T) {
 
 	timeTwo := time.Now()
 
-	rowCount, err := x.Update(globalDB)
+	x, err = x.Update(globalDB)
 
 	if err != nil {
 		t.Errorf("did not expect error, but got %s", err)
-	}
-
-	if rowCount != 1 {
-		t.Errorf("expected to update 1 row, but got %d", rowCount)
 	}
 
 	data1, err := SelectRow(globalDB, "where id = ?", x.ID)
@@ -137,7 +133,7 @@ func TestCrud(t *testing.T) {
 		t.Errorf("expected name to be '(no name available)', but got '%s'", data1.Name)
 	}
 
-	rowCount, err = x.Delete(globalDB)
+	rowCount, err := x.Delete(globalDB)
 
 	if err != nil {
 		t.Errorf("did not expect error, but got %s", err)

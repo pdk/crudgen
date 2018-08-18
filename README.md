@@ -69,6 +69,14 @@ methods are detected dynamically via type assertions, so they do not necessarily
 need to be in the same source file as your struct. (I.e. the methods are not
 detected during code generation, but during execution via type assertions.)
 
+Note that although the Insert() and Update() methods return new struct values,
+rather than mutating in place (for ID and timestamps) the hook methods may be
+mutating, and the mutations will be returned in the new struct values.
+
+Also, note that the hooks take a transaction handle (`*sql.Tx`) rather than a
+database handle (`*sql.DB`). If you have the wrong signature on your hooks, they
+will not be found and not invoked.
+
 ## Transaction Management
 
 The insert, update and delete operations are each done within a single
@@ -90,7 +98,7 @@ Tests assume a local postgres database to talk to.
 To setup test database, do this:
 
 ```
-create database crud_test
+create database crud_test;
 create user crud_test with password 'MudCrud';
 grant all privileges on database crud_test to crud_test;
 ```

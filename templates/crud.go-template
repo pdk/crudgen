@@ -9,23 +9,33 @@ import (
 	"github.com/pdk/crudgen/crudlib"
 )
 
-// Insert will insert one {{ .Struct.Name }} instance as a row in table {{ .TableName }}.
-func (r *{{.Struct.Name}}) Insert(db *sql.DB) error {
-    return crudlib.InTransaction(db, func (tx *sql.Tx) error {
-        return r.InsertTx(tx)
+const (
+    TableName = "{{ .TableName }}"
+)
+
+// Insert wraps InsertTx() in a transaction.
+func (r {{.Struct.Name}}) Insert(db *sql.DB) (newR {{ .Struct.Name}}, err error) {
+
+    err = crudlib.InTransaction(db, func (tx *sql.Tx) error {
+        newR, err = r.InsertTx(tx)
+        return err
     })
+
+    return newR, err
 }
 
-// InsertTx will insert, given a transaction.
-func (r *{{.Struct.Name}}) InsertTx(tx *sql.Tx) error {
+// InsertTx will insert on {{ .Struct.Name }}, given a transaction. Invokes
+// PreInsert and PostInsert hooks. Returns new {{ .Struct.Name }} with ID,
+// timestamps, etc updated.
+func (r {{.Struct.Name}}) InsertTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
+
+    err := crudlib.PreInsert(tx, &r)
+    if err != nil {
+        return r, err
+    }
     {{ range .Struct.CreateTimestampFields }}
     r.{{ .FieldName }} = time.Now(){{ end }}{{ range .Struct.UpdateTimestampFields }}
-    r.{{ .FieldName }} = time.Now()
-    {{ end }}
-    err := crudlib.PreInsert(tx, r)
-    if err != nil {
-        return err
-    }
+    r.{{ .FieldName }} = time.Now(){{ end }}
 
     insertStatement := `{{ .Style.Rebind (.Struct.InsertStatement .TableName) }}`
     {{ if .Struct.HasAutoIncrColumn }}
@@ -35,51 +45,64 @@ func (r *{{.Struct.Name}}) InsertTx(tx *sql.Tx) error {
     {{ else }}
     _, err = tx.Exec(insertStatment, {{ .Struct.InsertBindVars }})
     {{ end }}
-
     if err != nil {
-        return err
+        return r, err
     }
 
-    return crudlib.PostInsert(tx, r)
-}
+    err = crudlib.PostInsert(tx, &r)
 
-// Update will update a row in table {{ .TableName }}.
-func (r *{{ .Struct.Name }}) Update(db *sql.DB) (rowCount int64, err error) {
+    return r, err
+}
+{{ if .IncludeUpdate }}
+// Wraps UpdateTx() in a transaction.
+func (r {{ .Struct.Name }}) Update(db *sql.DB) (newR {{ .Struct.Name }}, err error) {
+
     err = crudlib.InTransaction(db, func (tx *sql.Tx) error {
-        rowCount, err = r.UpdateTx(tx)
+        newR, err = r.UpdateTx(tx)
         return err
     })
 
-    return rowCount, err
+    return newR, err
 }
 
-// UpdateTx will update a row, within a transaction.
-func (r *{{ .Struct.Name }}) UpdateTx(tx *sql.Tx) (rowCount int64, err error) {
-    {{ range .Struct.UpdateTimestampFields }}
-    r.{{ .FieldName }} = time.Now()
-    {{ end }}
-    err = crudlib.PreUpdate(tx, r)
+// UpdateTx will update a row, given a transaction. Will fail and return an
+// error if not exactly 1 row is updated. Returns new {{ .Struct.Name }} with
+// timestamps, etc updated.
+func (r {{ .Struct.Name }}) UpdateTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
+
+    err := crudlib.PreUpdate(tx, &r)
     if err != nil {
-        return 0, err
+        return r, err
     }
+    {{ range .Struct.UpdateTimestampFields }}
+    r.{{ .FieldName }} = time.Now(){{ end }}
 
     updateStatement := `{{ .Style.Rebind (.Struct.UpdateStatement .TableName) }}`
 
     result, err := tx.Exec(updateStatement, {{ .Struct.UpdateBindVars }})
 
+	rows, err := result.RowsAffected()
 	if err != nil {
-		return 0, err
-	}
-
-    rows, err := result.RowsAffected()
-    if err != nil {
-        return rows, err
+		return r, err
     }
 
-    return rows, crudlib.PostUpdate(tx, r)
-}
+    if rows == 0 {
+        return r, crudlib.NoRowsUpdated
+    }
 
-// Delete will delete a row in table {{ .TableName }}.
+    if rows > 1 {
+        return r, crudlib.MoreThanOneRowUpdated
+    }
+
+    err = crudlib.PostUpdate(tx, &r)
+
+    return r, err
+}{{ else }}
+//
+// Update() and UpdateTx() omitted by -noupdate
+//{{ end }}
+
+// Wraps DeleteTx() in a transaction.
 func (r *{{ .Struct.Name }}) Delete(db *sql.DB) (rowCount int64, err error) {
     err = crudlib.InTransaction(db, func (tx *sql.Tx) error {
         rowCount, err = r.DeleteTx(tx)
@@ -90,6 +113,8 @@ func (r *{{ .Struct.Name }}) Delete(db *sql.DB) (rowCount int64, err error) {
 }
 
 // DeleteTx executes PreDelete, delete, and PostDelete within a transaction.
+// Will fail if delete affects more than one row. No error if 0 rows are
+// deleted.
 func (r *{{ .Struct.Name }}) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 
     deleteStatement := `{{ .Style.Rebind (.Struct.DeleteStatement .TableName) }}`
@@ -108,6 +133,10 @@ func (r *{{ .Struct.Name }}) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 	rows, err := result.RowsAffected()
     if err != nil {
         return rows, err
+    }
+
+    if rows > 1 {
+        return rows, crudlib.MoreThanOneRowDeleted
     }
 
     return rows, crudlib.PostDelete(tx, r)
