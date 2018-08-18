@@ -13,6 +13,11 @@ type PostInserter interface {
 	PostInsert(*sql.Tx) error
 }
 
+// PostInserterWithTableName offers a post-insert operations with a table name parameter.
+type PostInserterWithTableName interface {
+	PostInsert(*sql.Tx, string) error
+}
+
 // PreUpdater offers a pre-update operation which might return an error to
 // indicate the operation should be aborted.
 type PreUpdater interface {
@@ -43,10 +48,15 @@ func PreInsert(tx *sql.Tx, item interface{}) error {
 }
 
 // PostInsert checks if the passed in item has a PostInsert method and invokes it.
-func PostInsert(tx *sql.Tx, item interface{}) error {
+func PostInsert(tx *sql.Tx, tableName string, item interface{}) error {
 	if chk, ok := item.(PostInserter); ok {
 		return chk.PostInsert(tx)
 	}
+
+	if chk, ok := item.(PostInserterWithTableName); ok {
+		return chk.PostInsert(tx, tableName)
+	}
+
 	return nil
 }
 
