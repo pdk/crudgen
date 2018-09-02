@@ -1,7 +1,7 @@
-package samples
+package user
 
-//go:generate crudgen -out sample2-crud.go -package $GOPACKAGE -bindstyle dollar -table users -select SelectUsers -struct User -compose V:Version $GOFILE ./version/version.go
-//go:generate gofmt -w sample1-crud.go
+//go:generate crudgen -out user-crud.go -package $GOPACKAGE -bindstyle dollar -table users -select SelectUsers -struct User -compose V:Version $GOFILE ../version/version.go
+//go:generate gofmt -w user-crud.go
 
 import (
 	"database/sql"
@@ -19,7 +19,7 @@ type User struct {
 	Phone string
 }
 
-func (u *User) PreInsert(tx *sql.Tx) error {
+func (u *User) PreInsert(tx *sql.Tx, tableName string) error {
 	if u.V.UUID.String() == "00000000-0000-0000-0000-000000000000" {
 		u.V.UUID = uuid.New()
 	}
@@ -27,7 +27,7 @@ func (u *User) PreInsert(tx *sql.Tx) error {
 	return nil
 }
 
-func (u *User) PostInsert(tx *sql.Tx) error {
+func (u *User) PostInsert(tx *sql.Tx, tableName string) error {
 
 	deactivateSQL := `
 		update users

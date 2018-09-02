@@ -1,13 +1,21 @@
-package samples
+package user
 
 import (
 	"database/sql"
 	"fmt"
 	"log"
 	"testing"
+
+	_ "github.com/lib/pq"
 )
 
 const (
+	host     = "localhost"
+	port     = 5432
+	user     = "crud_test"
+	password = "MudCrud"
+	dbName   = "crud_test"
+
 	createUsersTableStatement = `
 		create table if not exists users (
 			uuid			varchar,
@@ -19,6 +27,8 @@ const (
 			phone			varchar
 		)`
 )
+
+var globalDB *sql.DB
 
 func init() {
 	dbConnectString := fmt.Sprintf("host=%s port=%d user=%s "+
@@ -47,7 +57,7 @@ func TestUsersCrud(t *testing.T) {
 
 	oldUUID := x.V.UUID
 
-	err := x.Insert(globalDB)
+	x, err := x.Insert(globalDB)
 
 	if err != nil {
 		t.Errorf("did not expect error, but got %s", err)
@@ -60,7 +70,7 @@ func TestUsersCrud(t *testing.T) {
 	oldUUID = x.V.UUID
 	x.Phone = "999-666-1234"
 
-	err = x.Insert(globalDB)
+	x, err = x.Insert(globalDB)
 
 	if err != nil {
 		t.Errorf("did not expect error, but got %s", err)

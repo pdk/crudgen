@@ -57,9 +57,12 @@ directly listed in the struct definition are included in crud operations.
 
 There are Pre- and Post- hooks for insert, update and delete:
 
-1. `PreInsert(tx *sql.TX) error` and `PostInsert(tx *sql.TX) error`
-2. `PreUpdate(tx *sql.TX) error` and `PostUpdate(tx *sql.TX) error`
-3. `PreDelete(tx *sql.TX) error` and `PostDelete(tx *sql.TX) error`
+1. `PreInsert(tx *sql.Tx, string) error` and `PostInsert(tx *sql.Tx, string) error`
+2. `PreUpdate(tx *sql.Tx, string) error` and `PostUpdate(tx *sql.Tx, string) error`
+3. `PreDelete(tx *sql.Tx, string) error` and `PostDelete(tx *sql.Tx, string) error`
+
+In all cases, the second arg, the `string` should be `tableName`. This is to
+support actions carried by via composition/inheritance.
 
 The current transaction is passed to each hook, so that additional database
 operations may be performed.

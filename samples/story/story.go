@@ -1,7 +1,7 @@
-package samples
+package story
 
-//go:generate crudgen -out sample1-crud.go -package $GOPACKAGE -bindstyle dollar -table stories -select Select $GOFILE
-//go:generate gofmt -w sample1-crud.go
+//go:generate crudgen -out story-crud.go -package $GOPACKAGE -bindstyle dollar -table stories -select Select $GOFILE
+//go:generate gofmt -w story-crud.go
 
 import (
 	"database/sql"
@@ -25,7 +25,8 @@ type Story struct {
 	UpdatedAt   time.Time      `db:"updated_at" crud:"update_timestamp"`
 }
 
-func (s *Story) PreInsert(tx *sql.Tx) error {
+// PreInsert runs before inserting a row.
+func (s *Story) PreInsert(tx *sql.Tx, tableName string) error {
 	if strings.HasPrefix(s.URL, "http://") {
 		s.URL = strings.Replace(s.URL, "http://", "https://", 1)
 	}
@@ -33,7 +34,8 @@ func (s *Story) PreInsert(tx *sql.Tx) error {
 	return nil
 }
 
-func (s *Story) PreUpdate(tx *sql.Tx) error {
+// PreUpdate runs before updating a row.
+func (s *Story) PreUpdate(tx *sql.Tx, tableName string) error {
 	if s.Name == "" {
 		s.Name = "(no name available)"
 	}

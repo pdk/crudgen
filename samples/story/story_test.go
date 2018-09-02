@@ -1,4 +1,4 @@
-package samples
+package story
 
 import (
 	"database/sql"
