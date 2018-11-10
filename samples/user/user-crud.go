@@ -33,6 +33,10 @@ func (r User) InsertTx(tx *sql.Tx) (User, error) {
 	if err != nil {
 		return r, err
 	}
+	err = crudlib.PreModify(tx, &r, TableName)
+	if err != nil {
+		return r, err
+	}
 
 	r.V.VersionAt = time.Now()
 
@@ -46,6 +50,10 @@ func (r User) InsertTx(tx *sql.Tx) (User, error) {
 		return r, err
 	}
 
+	err = crudlib.PostModify(tx, &r, TableName)
+	if err != nil {
+		return r, err
+	}
 	err = crudlib.PostInsert(tx, &r, TableName)
 
 	return r, err
@@ -71,6 +79,10 @@ func (r User) UpdateTx(tx *sql.Tx) (User, error) {
 	if err != nil {
 		return r, err
 	}
+	err = crudlib.PreModify(tx, &r, TableName)
+	if err != nil {
+		return r, err
+	}
 
 	r.V.VersionAt = time.Now()
 
@@ -91,6 +103,10 @@ func (r User) UpdateTx(tx *sql.Tx) (User, error) {
 		return r, crudlib.MoreThanOneRowUpdated
 	}
 
+	err = crudlib.PostModify(tx, &r, TableName)
+	if err != nil {
+		return r, err
+	}
 	err = crudlib.PostUpdate(tx, &r, TableName)
 
 	return r, err
@@ -117,6 +133,10 @@ func (r *User) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 	if err != nil {
 		return 0, err
 	}
+	err = crudlib.PreModify(tx, &r, TableName)
+	if err != nil {
+		return 0, err
+	}
 
 	result, err := tx.Exec(deleteStatement, r.V.VersionID)
 
@@ -133,6 +153,10 @@ func (r *User) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 		return rows, crudlib.MoreThanOneRowDeleted
 	}
 
+	err = crudlib.PostModify(tx, &r, TableName)
+	if err != nil {
+		return rows, err
+	}
 	return rows, crudlib.PostDelete(tx, r, TableName)
 }
 

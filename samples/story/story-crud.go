@@ -33,6 +33,10 @@ func (r Story) InsertTx(tx *sql.Tx) (Story, error) {
 	if err != nil {
 		return r, err
 	}
+	err = crudlib.PreModify(tx, &r, TableName)
+	if err != nil {
+		return r, err
+	}
 
 	r.CreatedAt = time.Now()
 	r.UpdatedAt = time.Now()
@@ -47,6 +51,10 @@ func (r Story) InsertTx(tx *sql.Tx) (Story, error) {
 		return r, err
 	}
 
+	err = crudlib.PostModify(tx, &r, TableName)
+	if err != nil {
+		return r, err
+	}
 	err = crudlib.PostInsert(tx, &r, TableName)
 
 	return r, err
@@ -72,6 +80,10 @@ func (r Story) UpdateTx(tx *sql.Tx) (Story, error) {
 	if err != nil {
 		return r, err
 	}
+	err = crudlib.PreModify(tx, &r, TableName)
+	if err != nil {
+		return r, err
+	}
 
 	r.UpdatedAt = time.Now()
 
@@ -92,6 +104,10 @@ func (r Story) UpdateTx(tx *sql.Tx) (Story, error) {
 		return r, crudlib.MoreThanOneRowUpdated
 	}
 
+	err = crudlib.PostModify(tx, &r, TableName)
+	if err != nil {
+		return r, err
+	}
 	err = crudlib.PostUpdate(tx, &r, TableName)
 
 	return r, err
@@ -118,6 +134,10 @@ func (r *Story) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 	if err != nil {
 		return 0, err
 	}
+	err = crudlib.PreModify(tx, &r, TableName)
+	if err != nil {
+		return 0, err
+	}
 
 	result, err := tx.Exec(deleteStatement, r.ID)
 
@@ -134,6 +154,10 @@ func (r *Story) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 		return rows, crudlib.MoreThanOneRowDeleted
 	}
 
+	err = crudlib.PostModify(tx, &r, TableName)
+	if err != nil {
+		return rows, err
+	}
 	return rows, crudlib.PostDelete(tx, r, TableName)
 }
 
