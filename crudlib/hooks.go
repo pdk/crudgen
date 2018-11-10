@@ -1,6 +1,28 @@
 package crudlib
 
+// Order of operations with hooks:
+// 1. PreInsert, PreUpdate, or PreDelete
+// 2. PreModify
+// 3. actual SQL insert, update or delete
+// 4. PostModify
+// 5. PostInsert, PostUpdate, or PostDelete
+
 import "database/sql"
+
+// PreModifier offers an operation to be executed before any
+// insert/update/delete operation. Will be executed *after*
+// PreInsert/PreUpdate/PreDelete, but *before* actual SQL insert/update/delete.
+type PreModifier interface {
+	PreModify(*sql.Tx, string) error
+}
+
+// PostModifier offers an operation to be executed after any
+// insert/update/delete operation. Will be executed *before*
+// PostInsert/PostUpdate/PostDelete, but *after* actual SQL
+// insert/update/delete.
+type PostModifier interface {
+	PostModify(*sql.Tx, string) error
+}
 
 // PreInserter offers a pre-insert operation which might return an error to
 // indicate the operation should be aborted.
@@ -32,6 +54,22 @@ type PreDeleter interface {
 // PostDeleter offers a post-deletion operation.
 type PostDeleter interface {
 	PostDelete(*sql.Tx, string) error
+}
+
+// PreModify checks if the passed in item has a PreModify method and invokes it.
+func PreModify(tx *sql.Tx, item interface{}, tableName string) error {
+	if chk, ok := item.(PreModifier); ok {
+		return chk.PreModify(tx, tableName)
+	}
+	return nil
+}
+
+// PostModify checks if the passed in item has a PostModify method and invokes it.
+func PostModify(tx *sql.Tx, item interface{}, tableName string) error {
+	if chk, ok := item.(PostModifier); ok {
+		return chk.PostModify(tx, tableName)
+	}
+	return nil
 }
 
 // PreInsert checks if the passed in item has a PreInsert method and invokes it.

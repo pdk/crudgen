@@ -33,6 +33,10 @@ func (r {{.Struct.Name}}) InsertTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
     if err != nil {
         return r, err
     }
+    err = crudlib.PreModify(tx, &r, TableName)
+    if err != nil {
+        return r, err
+    }
     {{ range .Struct.CreateTimestampFields }}
     r.{{ .FieldName }} = time.Now(){{ end }}{{ range .Struct.UpdateTimestampFields }}
     r.{{ .FieldName }} = time.Now(){{ end }}
@@ -49,6 +53,10 @@ func (r {{.Struct.Name}}) InsertTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
         return r, err
     }
 
+    err = crudlib.PostModify(tx, &r, TableName)
+    if err != nil {
+        return r, err
+    }
     err = crudlib.PostInsert(tx, &r, TableName)
 
     return r, err
@@ -74,6 +82,10 @@ func (r {{ .Struct.Name }}) UpdateTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
     if err != nil {
         return r, err
     }
+    err = crudlib.PreModify(tx, &r, TableName)
+    if err != nil {
+        return r, err
+    }
     {{ range .Struct.UpdateTimestampFields }}
     r.{{ .FieldName }} = time.Now(){{ end }}
 
@@ -94,6 +106,10 @@ func (r {{ .Struct.Name }}) UpdateTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
         return r, crudlib.MoreThanOneRowUpdated
     }
 
+    err = crudlib.PostModify(tx, &r, TableName)
+    if err != nil {
+        return r, err
+    }
     err = crudlib.PostUpdate(tx, &r, TableName)
 
     return r, err
@@ -123,6 +139,10 @@ func (r *{{ .Struct.Name }}) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
     if err != nil {
         return 0, err
     }
+    err = crudlib.PreModify(tx, &r, TableName)
+    if err != nil {
+        return 0, err
+    }
 
     result, err := tx.Exec(deleteStatement, {{ .Struct.DeleteBindVars }})
 
@@ -139,6 +159,10 @@ func (r *{{ .Struct.Name }}) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
         return rows, crudlib.MoreThanOneRowDeleted
     }
 
+    err = crudlib.PostModify(tx, &r, TableName)
+    if err != nil {
+        return rows, err
+    }
     return rows, crudlib.PostDelete(tx, r, TableName)
 }
 
