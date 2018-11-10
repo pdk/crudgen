@@ -29,7 +29,7 @@ func (r {{.Struct.Name}}) Insert(db *sql.DB) (newR {{ .Struct.Name}}, err error)
 // timestamps, etc updated.
 func (r {{.Struct.Name}}) InsertTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
 
-    err := crudlib.PreInsert(tx, &r, "{{ .TableName }}")
+    err := crudlib.PreInsert(tx, &r, TableName)
     if err != nil {
         return r, err
     }
@@ -49,7 +49,7 @@ func (r {{.Struct.Name}}) InsertTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
         return r, err
     }
 
-    err = crudlib.PostInsert(tx, &r, "{{ .TableName }}")
+    err = crudlib.PostInsert(tx, &r, TableName)
 
     return r, err
 }
@@ -70,7 +70,7 @@ func (r {{ .Struct.Name }}) Update(db *sql.DB) (newR {{ .Struct.Name }}, err err
 // timestamps, etc updated.
 func (r {{ .Struct.Name }}) UpdateTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
 
-    err := crudlib.PreUpdate(tx, &r, "{{ .TableName }}")
+    err := crudlib.PreUpdate(tx, &r, TableName)
     if err != nil {
         return r, err
     }
@@ -94,7 +94,7 @@ func (r {{ .Struct.Name }}) UpdateTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
         return r, crudlib.MoreThanOneRowUpdated
     }
 
-    err = crudlib.PostUpdate(tx, &r, "{{ .TableName }}")
+    err = crudlib.PostUpdate(tx, &r, TableName)
 
     return r, err
 }{{ else }}
@@ -119,7 +119,7 @@ func (r *{{ .Struct.Name }}) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 
     deleteStatement := `{{ .Style.Rebind (.Struct.DeleteStatement .TableName) }}`
 
-    err = crudlib.PreDelete(tx, r, "{{ .TableName }}")
+    err = crudlib.PreDelete(tx, r, TableName)
     if err != nil {
         return 0, err
     }
@@ -139,7 +139,7 @@ func (r *{{ .Struct.Name }}) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
         return rows, crudlib.MoreThanOneRowDeleted
     }
 
-    return rows, crudlib.PostDelete(tx, r, "{{ .TableName }}")
+    return rows, crudlib.PostDelete(tx, r, TableName)
 }
 
 // {{ .Select }} wraps {{ .Select }}Tx in a transaction.

@@ -29,7 +29,7 @@ func (r Story) Insert(db *sql.DB) (newR Story, err error) {
 // timestamps, etc updated.
 func (r Story) InsertTx(tx *sql.Tx) (Story, error) {
 
-	err := crudlib.PreInsert(tx, &r, "stories")
+	err := crudlib.PreInsert(tx, &r, TableName)
 	if err != nil {
 		return r, err
 	}
@@ -47,7 +47,7 @@ func (r Story) InsertTx(tx *sql.Tx) (Story, error) {
 		return r, err
 	}
 
-	err = crudlib.PostInsert(tx, &r, "stories")
+	err = crudlib.PostInsert(tx, &r, TableName)
 
 	return r, err
 }
@@ -68,7 +68,7 @@ func (r Story) Update(db *sql.DB) (newR Story, err error) {
 // timestamps, etc updated.
 func (r Story) UpdateTx(tx *sql.Tx) (Story, error) {
 
-	err := crudlib.PreUpdate(tx, &r, "stories")
+	err := crudlib.PreUpdate(tx, &r, TableName)
 	if err != nil {
 		return r, err
 	}
@@ -92,7 +92,7 @@ func (r Story) UpdateTx(tx *sql.Tx) (Story, error) {
 		return r, crudlib.MoreThanOneRowUpdated
 	}
 
-	err = crudlib.PostUpdate(tx, &r, "stories")
+	err = crudlib.PostUpdate(tx, &r, TableName)
 
 	return r, err
 }
@@ -114,7 +114,7 @@ func (r *Story) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 
 	deleteStatement := `delete from stories where id = $1`
 
-	err = crudlib.PreDelete(tx, r, "stories")
+	err = crudlib.PreDelete(tx, r, TableName)
 	if err != nil {
 		return 0, err
 	}
@@ -134,7 +134,7 @@ func (r *Story) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 		return rows, crudlib.MoreThanOneRowDeleted
 	}
 
-	return rows, crudlib.PostDelete(tx, r, "stories")
+	return rows, crudlib.PostDelete(tx, r, TableName)
 }
 
 // Select wraps SelectTx in a transaction.
