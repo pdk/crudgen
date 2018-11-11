@@ -42,6 +42,7 @@ func (r {{.Struct.Name}}) InsertTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
     r.{{ .FieldName }} = time.Now(){{ end }}
 
     insertStatement := `{{ .Style.Rebind (.Struct.InsertStatement .TableName) }}`
+    crudlib.Log("InsertTx: %s", insertStatement)
     {{ if .Struct.HasAutoIncrColumn }}
     var newID int64
     err = tx.QueryRow(insertStatement, {{ .Struct.InsertBindVars }}).Scan(&newID)
@@ -91,6 +92,7 @@ func (r {{ .Struct.Name }}) UpdateTx(tx *sql.Tx) ({{ .Struct.Name }}, error) {
 
     updateStatement := `{{ .Style.Rebind (.Struct.UpdateStatement .TableName) }}`
 
+    crudlib.Log("UpdateTx: %s", updateStatement)
     result, err := tx.Exec(updateStatement, {{ .Struct.UpdateBindVars }})
 
 	rows, err := result.RowsAffected()
@@ -144,6 +146,7 @@ func (r *{{ .Struct.Name }}) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
         return 0, err
     }
 
+    crudlib.Log("DeleteTx: %s", deleteStatement)
     result, err := tx.Exec(deleteStatement, {{ .Struct.DeleteBindVars }})
 
 	if err != nil {
@@ -194,6 +197,7 @@ func {{ .Select }}Tx(tx *sql.Tx, additionalClauses string, bindValues ...interfa
 
     values := []{{ .Struct.Name }}{}
 
+    crudlib.Log("{{ .Select }}Tx: %s", selectStatement)
     rows, err := tx.Query(selectStatement, bindValues...)
     if err != nil {
         return values, err
@@ -239,6 +243,7 @@ func {{ .Select }}Row(db *sql.DB, additionalClauses string, bindValues ...interf
 
     i := {{ .Struct.Name }}{}
 
+    crudlib.Log("{{ .Select }}Row: %s", selectStatement)
     err := db.QueryRow(selectStatement, bindValues...).Scan(
         {{ .Struct.ScanVars "i" }})
 

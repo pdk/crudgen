@@ -42,6 +42,7 @@ func (r Story) InsertTx(tx *sql.Tx) (Story, error) {
 	r.UpdatedAt = time.Now()
 
 	insertStatement := `insert into stories (url, mp3_url, mp3_duration, image_urls, name, description, place, created_at, updated_at) values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`
+	crudlib.Log("InsertTx: %s", insertStatement)
 
 	var newID int64
 	err = tx.QueryRow(insertStatement, r.URL, r.MP3URL, r.MP3Duration, r.imageURLs, r.Name, r.Description, r.place, r.CreatedAt, r.UpdatedAt).Scan(&newID)
@@ -89,6 +90,7 @@ func (r Story) UpdateTx(tx *sql.Tx) (Story, error) {
 
 	updateStatement := `update stories set url = $1, mp3_url = $2, mp3_duration = $3, image_urls = $4, name = $5, description = $6, place = $7, created_at = $8, updated_at = $9 where id = $10`
 
+	crudlib.Log("UpdateTx: %s", updateStatement)
 	result, err := tx.Exec(updateStatement, r.URL, r.MP3URL, r.MP3Duration, r.imageURLs, r.Name, r.Description, r.place, r.CreatedAt, r.UpdatedAt, r.ID)
 
 	rows, err := result.RowsAffected()
@@ -139,6 +141,7 @@ func (r *Story) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 		return 0, err
 	}
 
+	crudlib.Log("DeleteTx: %s", deleteStatement)
 	result, err := tx.Exec(deleteStatement, r.ID)
 
 	if err != nil {
@@ -188,6 +191,7 @@ func SelectTx(tx *sql.Tx, additionalClauses string, bindValues ...interface{}) (
 
 	values := []Story{}
 
+	crudlib.Log("SelectTx: %s", selectStatement)
 	rows, err := tx.Query(selectStatement, bindValues...)
 	if err != nil {
 		return values, err
@@ -233,6 +237,7 @@ func SelectRow(db *sql.DB, additionalClauses string, bindValues ...interface{}) 
 
 	i := Story{}
 
+	crudlib.Log("SelectRow: %s", selectStatement)
 	err := db.QueryRow(selectStatement, bindValues...).Scan(
 		&i.ID, &i.URL, &i.MP3URL, &i.MP3Duration, &i.imageURLs, &i.Name, &i.Description, &i.place, &i.CreatedAt, &i.UpdatedAt)
 

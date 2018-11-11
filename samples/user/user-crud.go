@@ -41,6 +41,7 @@ func (r User) InsertTx(tx *sql.Tx) (User, error) {
 	r.V.VersionAt = time.Now()
 
 	insertStatement := `insert into users (uuid, version_at, active_version, name, email, phone) values ($1, $2, $3, $4, $5, $6) returning version_id`
+	crudlib.Log("InsertTx: %s", insertStatement)
 
 	var newID int64
 	err = tx.QueryRow(insertStatement, r.V.UUID, r.V.VersionAt, r.V.ActiveVersion, r.Name, r.Email, r.Phone).Scan(&newID)
@@ -88,6 +89,7 @@ func (r User) UpdateTx(tx *sql.Tx) (User, error) {
 
 	updateStatement := `update users set uuid = $1, version_at = $2, active_version = $3, name = $4, email = $5, phone = $6 where version_id = $7`
 
+	crudlib.Log("UpdateTx: %s", updateStatement)
 	result, err := tx.Exec(updateStatement, r.V.UUID, r.V.VersionAt, r.V.ActiveVersion, r.Name, r.Email, r.Phone, r.V.VersionID)
 
 	rows, err := result.RowsAffected()
@@ -138,6 +140,7 @@ func (r *User) DeleteTx(tx *sql.Tx) (rowCount int64, err error) {
 		return 0, err
 	}
 
+	crudlib.Log("DeleteTx: %s", deleteStatement)
 	result, err := tx.Exec(deleteStatement, r.V.VersionID)
 
 	if err != nil {
@@ -187,6 +190,7 @@ func SelectUsersTx(tx *sql.Tx, additionalClauses string, bindValues ...interface
 
 	values := []User{}
 
+	crudlib.Log("SelectUsersTx: %s", selectStatement)
 	rows, err := tx.Query(selectStatement, bindValues...)
 	if err != nil {
 		return values, err
@@ -232,6 +236,7 @@ func SelectUsersRow(db *sql.DB, additionalClauses string, bindValues ...interfac
 
 	i := User{}
 
+	crudlib.Log("SelectUsersRow: %s", selectStatement)
 	err := db.QueryRow(selectStatement, bindValues...).Scan(
 		&i.V.UUID, &i.V.VersionID, &i.V.VersionAt, &i.V.ActiveVersion, &i.Name, &i.Email, &i.Phone)
 
