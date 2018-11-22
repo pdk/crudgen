@@ -18,6 +18,7 @@ func init() {
 	flag.StringVar(&selectName, "select", "Select", "name of the function for executing a query")
 	flag.StringVar(&compositions, "compose", "", "structs to compose, e.g.: StandardFields,V:Version")
 	flag.BoolVar(&noUpdate, "noupdate", false, "disable creation of Update() method")
+	flag.BoolVar(&dumpJSON, "json", false, "dump JSON of template data")
 
 	flag.Parse()
 }
@@ -31,6 +32,7 @@ var (
 	selectName   string
 	compositions string
 	noUpdate     bool
+	dumpJSON     bool
 )
 
 func main() {
@@ -51,7 +53,12 @@ func main() {
 
 	outFile := resolveOutFile(outFileName)
 
-	PrintTemplate(outFile, packageName, tableName, *s, bindStyle, selectName, noUpdate)
+	templateData := NewTemplateData(packageName, tableName, *s, bindStyle, selectName, noUpdate)
+	if dumpJSON {
+		DumpJSON(outFile, templateData)
+	} else {
+		PrintTemplate(outFile, templateData)
+	}
 }
 
 func compose(s *Struct, compositions string, structMap map[string]*Struct) {

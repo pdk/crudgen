@@ -282,3 +282,19 @@ func (s Struct) CreateTimestampFields() []Field {
 func (s Struct) UpdateTimestampFields() []Field {
 	return pickFields(s.AllFields(), isUpdateTimestamp)
 }
+
+func (s Struct) createTimestampColumnNames() []string {
+	return columnNames(s.CreateTimestampFields())
+}
+
+func (s Struct) createTimestampFieldNames() []string {
+	return fieldNames(s.CreateTimestampFields())
+}
+
+func (s Struct) updateTimestampColumnNames() []string {
+	return columnNames(s.UpdateTimestampFields())
+}
+
+func (s Struct) updateTimestampFieldNames() []string {
+	return fieldNames(s.UpdateTimestampFields())
+}
